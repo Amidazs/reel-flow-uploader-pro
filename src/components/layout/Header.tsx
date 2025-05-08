@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -26,22 +27,22 @@ const Header = () => {
             <div className="h-10 w-10 bg-gradient-to-r from-autoreel-primary to-autoreel-tertiary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl">A</span>
             </div>
-            <h1 className="text-xl md:text-2xl font-bold ml-2">
+            <Link to="/" className="text-xl md:text-2xl font-bold ml-2">
               <span className="gradient-text">AutoReel</span> Uploader
-            </h1>
+            </Link>
           </div>
         </div>
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.href}
-              href={link.href}
+              to={link.href}
               className="text-foreground/80 hover:text-autoreel-primary font-medium transition-colors duration-200"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <ThemeToggle />
         </nav>
@@ -66,14 +67,14 @@ const Header = () => {
         <div className="fixed inset-0 top-16 bg-background/95 backdrop-blur-sm animate-fade-in z-40">
           <nav className="flex flex-col items-center justify-center h-full gap-8">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
-                href={link.href}
+                to={link.href}
                 className="text-xl font-medium hover:text-autoreel-primary transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
         </div>

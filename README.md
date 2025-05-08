@@ -1,73 +1,62 @@
-# Welcome to your Lovable project
 
-## Project info
+# AutoReel Uploader
 
-**URL**: https://lovable.dev/projects/922807ed-d1da-446e-8a0b-d5d83bf09d81
+A tool for creators to simplify their social media workflow. Upload once, publish everywhere.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- Upload videos to multiple platforms (TikTok, YouTube Shorts, Facebook Reels)
+- Manage metadata for each platform
+- Track video performance
+- Customize upload settings
+- View analytics across all platforms
 
-**Use Lovable**
+## Installation Instructions
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/922807ed-d1da-446e-8a0b-d5d83bf09d81) and start prompting.
+### Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js and npm installed
+- For Android: Android Studio installed
+- For Windows: Electron builder
 
-**Use your preferred IDE**
+### Setting Up the Project
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone the repository from GitHub
+2. Run `npm install` to install dependencies
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Building for Android
 
-Follow these steps:
+1. Run `npm run build` to build the web app
+2. Run `npx cap add android` (first time only)
+3. Run `npx cap sync` to sync the web app with the Android project
+4. Run `npx cap open android` to open the project in Android Studio
+5. Build the APK from Android Studio
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Building for Windows (as EXE)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+To build an EXE file for Windows, you'll need to integrate Electron:
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. Install Electron: `npm install electron electron-builder --save-dev`
+2. Create main.js in the project root
+3. Update package.json with Electron build configuration
+4. Run `npm run electron:build` to create the EXE file
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## Using the App
 
-**Edit a file directly in GitHub**
+1. Connect your social media accounts in Settings
+2. Upload a video from the Dashboard
+3. Customize metadata for each platform
+4. Publish to all platforms simultaneously
+5. Track performance in the Analytics section
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Troubleshooting
 
-**Use GitHub Codespaces**
+If you encounter issues:
+- Check that your API keys are valid
+- Verify your network connection
+- Ensure video formats are supported (MP4, MOV, WEBM)
+- Check console logs for detailed error information
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## For Personal Use
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/922807ed-d1da-446e-8a0b-d5d83bf09d81) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This app is configured for personal use and includes everything needed to manage your social media video uploads efficiently.
