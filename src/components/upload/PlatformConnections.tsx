@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Platform = {
   name: string;
@@ -17,34 +30,58 @@ type Platform = {
   color: string;
 };
 
-const platforms: Platform[] = [
-  {
-    name: "TikTok",
-    id: "tiktok",
-    connected: false,
-    icon: "🎵",
-    color: "#00f2ea",
-  },
-  {
-    name: "YouTube",
-    id: "youtube",
-    connected: false,
-    icon: "📺",
-    color: "#ff0000",
-  },
-  {
-    name: "Facebook",
-    id: "facebook",
-    connected: false,
-    icon: "👥",
-    color: "#1877f2",
-  },
-];
-
 const PlatformConnections = () => {
+  const { toast } = useToast();
+  const [platforms, setPlatforms] = useState<Platform[]>([
+    {
+      name: "TikTok",
+      id: "tiktok",
+      connected: false,
+      icon: "🎵",
+      color: "#00f2ea",
+    },
+    {
+      name: "YouTube",
+      id: "youtube",
+      connected: false,
+      icon: "📺",
+      color: "#ff0000",
+    },
+    {
+      name: "Facebook",
+      id: "facebook",
+      connected: false,
+      icon: "👥",
+      color: "#1877f2",
+    },
+  ]);
+
   const handleConnect = (platformId: string) => {
-    // In a real app, this would initiate OAuth flow
-    alert(`Connecting to ${platformId}...`);
+    // Update the UI state for the connected platform
+    setPlatforms(prevPlatforms => 
+      prevPlatforms.map(platform => 
+        platform.id === platformId ? { ...platform, connected: true } : platform
+      )
+    );
+    
+    toast({
+      title: "Connected successfully",
+      description: `Your ${platformId} account has been connected.`,
+    });
+  };
+  
+  const handleDisconnect = (platformId: string) => {
+    // Update the UI state for the disconnected platform
+    setPlatforms(prevPlatforms => 
+      prevPlatforms.map(platform => 
+        platform.id === platformId ? { ...platform, connected: false } : platform
+      )
+    );
+    
+    toast({
+      title: "Disconnected successfully",
+      description: `Your ${platformId} account has been disconnected.`,
+    });
   };
 
   return (
@@ -76,22 +113,29 @@ const PlatformConnections = () => {
               {platform.connected ? (
                 <>
                   <CheckCircle2 size={18} className="text-green-500" />
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-red-500/20 text-red-500 hover:bg-red-500/10"
-                        >
-                          Disconnect
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Remove access to this account</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500/20 text-red-500 hover:bg-red-500/10"
+                      >
+                        Disconnect
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Disconnect {platform.name}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will remove access to your {platform.name} account. You'll need to reconnect to upload videos to {platform.name}.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDisconnect(platform.id)}>Disconnect</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </>
               ) : (
                 <>
@@ -114,6 +158,9 @@ const PlatformConnections = () => {
         <div className="text-center pt-2">
           <p className="text-sm text-muted-foreground">
             Connect your accounts to enable automatic uploads
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Note: This is a demonstration with mock data. In a production app, this would initiate the OAuth flow.
           </p>
         </div>
       </div>

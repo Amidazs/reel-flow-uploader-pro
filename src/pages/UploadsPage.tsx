@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Search, 
@@ -22,9 +22,20 @@ import {
 } from "@/components/ui/select";
 import Header from "@/components/layout/Header";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Mock uploads for demonstration
-const mockUploads = [
+const initialMockUploads = [
   {
     id: "1",
     title: "How to Make Pancakes - Quick Recipe",
@@ -89,6 +100,7 @@ const UploadsPage = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [mockUploads, setMockUploads] = useState(initialMockUploads);
   const { toast } = useToast();
 
   const filteredUploads = mockUploads.filter(upload => {
@@ -98,7 +110,6 @@ const UploadsPage = () => {
   });
 
   const handleNewUpload = () => {
-    // In a real app, this would navigate to the upload page
     toast({
       title: "Upload feature",
       description: "Redirecting to upload page...",
@@ -107,11 +118,13 @@ const UploadsPage = () => {
   };
 
   const handleDeleteUpload = (id: string) => {
+    // Actually remove the item from our state
+    setMockUploads(prevUploads => prevUploads.filter(upload => upload.id !== id));
+    
     toast({
       title: "Video deleted",
       description: "The video has been removed from your uploads.",
     });
-    // In a real app, this would delete the upload
   };
 
   const statusOptions = [
@@ -237,13 +250,28 @@ const UploadsPage = () => {
                   )}
                 </CardContent>
                 <div className="px-4 pb-4 pt-0 flex justify-end">
-                  <Button 
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteUpload(upload.id)}
-                  >
-                    Delete
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive"
+                        size="sm"
+                      >
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete this video from your uploads.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteUpload(upload.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </Card>
             ))}
@@ -288,13 +316,28 @@ const UploadsPage = () => {
                     </div>
                   </div>
                   
-                  <Button 
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteUpload(upload.id)}
-                  >
-                    Delete
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive"
+                        size="sm"
+                      >
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete this video from your uploads.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteUpload(upload.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </CardContent>
               </Card>
             ))}
