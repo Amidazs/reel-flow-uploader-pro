@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/lib/supabase";
+import { supabase, useAuth, deletePlatformConnection } from "@/lib/supabase";
 
 type Platform = {
   name: string;
@@ -33,17 +33,12 @@ type Platform = {
 
 const PlatformConnections = () => {
   const { toast } = useToast();
+  const { user, signInWithOAuth } = useAuth();
+  
   const [platforms, setPlatforms] = useState<Platform[]>([
     {
-      name: "TikTok",
-      id: "tiktok",
-      connected: false,
-      icon: "🎵",
-      color: "#00f2ea",
-    },
-    {
       name: "YouTube",
-      id: "youtube",
+      id: "google",
       connected: false,
       icon: "📺",
       color: "#ff0000",
@@ -63,13 +58,12 @@ const PlatformConnections = () => {
   useEffect(() => {
     const fetchConnections = async () => {
       try {
-        const { data: user } = await supabase.auth.getUser();
-        if (!user?.user?.id) return;
+        if (!user?.id) return;
         
         const { data, error } = await supabase
           .from('platform_connections')
           .select('*')
-          .eq('user_id', user.user.id);
+          .eq('user_id', user.id);
         
         if (error) throw error;
         
@@ -93,16 +87,16 @@ const PlatformConnections = () => {
       }
     };
     
-    fetchConnections();
-  }, []);
+    if (user) {
+      fetchConnections();
+    }
+  }, [user]);
 
   const handleConnect = async (platformId: string) => {
     try {
       setIsLoading(prev => ({ ...prev, [platformId]: true }));
       
-      // Get current user
-      const { data: user } = await supabase.auth.getUser();
-      if (!user?.user?.id) {
+      if (!user) {
         toast({
           title: "Authentication required",
           description: "Please log in to connect your accounts."
@@ -110,51 +104,15 @@ const PlatformConnections = () => {
         return;
       }
 
-      // In a real implementation, we'd redirect to the platform's OAuth authorization page
-      // For now, we'll simulate that by just storing a connection record
+      const { error } = await signInWithOAuth(platformId as 'google' | 'facebook');
       
-      // Begin OAuth flow based on platform
-      switch (platformId) {
-        case 'tiktok':
-          // Implementation for TikTok OAuth would go here
-          window.open(`${window.location.origin}/api/connect/tiktok`, '_blank');
-          break;
-        case 'youtube':
-          // Implementation for YouTube OAuth would go here
-          window.open(`${window.location.origin}/api/connect/youtube`, '_blank');
-          break;
-        case 'facebook':
-          // Implementation for Facebook OAuth would go here
-          window.open(`${window.location.origin}/api/connect/facebook`, '_blank');
-          break;
+      if (error) {
+        throw error;
       }
       
-      // For demo purposes, simulate success and store the connection
-      const { data, error } = await supabase
-        .from('platform_connections')
-        .upsert({
-          user_id: user.user.id,
-          platform_id: platformId,
-          connected_at: new Date().toISOString(),
-          access_token: 'mock-token-for-demo', // In real app, this would be the actual token
-          refresh_token: 'mock-refresh-token', // In real app, this would be the actual refresh token
-          expires_at: new Date(Date.now() + 3600000).toISOString(), // 1 hour from now
-        })
-        .select();
-        
-      if (error) throw error;
+      // Note: The actual connection will be updated after the OAuth redirect and callback
+      // Since this is a redirect-based flow, we won't update the UI here
       
-      // Update UI
-      setPlatforms(prevPlatforms => 
-        prevPlatforms.map(platform => 
-          platform.id === platformId ? { ...platform, connected: true } : platform
-        )
-      );
-      
-      toast({
-        title: "Connected successfully",
-        description: `Your ${platformId} account has been connected.`,
-      });
     } catch (error) {
       console.error(`Error connecting to ${platformId}:`, error);
       toast({
@@ -170,15 +128,15 @@ const PlatformConnections = () => {
     try {
       setIsLoading(prev => ({ ...prev, [platformId]: true }));
       
-      // Get current user
-      const { data: user } = await supabase.auth.getUser();
-      if (!user?.user?.id) return;
+      if (!user?.id) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to manage your connections."
+        });
+        return;
+      }
       
-      // Delete the connection record
-      const { error } = await supabase
-        .from('platform_connections')
-        .delete()
-        .match({ user_id: user.user.id, platform_id: platformId });
+      const { error } = await deletePlatformConnection(user.id, platformId);
         
       if (error) throw error;
       
