@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import UploadsPage from "./pages/UploadsPage";
@@ -99,16 +99,25 @@ const OAuthCallbackHandler = () => {
   return null;
 };
 
-// Protected route component
+// Protected route component - Improved to show message instead of navigate away
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuthContext();
+  const navigate = useNavigate();
   
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
   
   if (!user) {
-    return <Navigate to="/" />;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="bg-card rounded-lg p-8 shadow-lg max-w-md w-full text-center">
+          <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+          <p className="mb-6">You need to sign in to access this page.</p>
+          <Button onClick={() => navigate("/")}>Go to Login</Button>
+        </div>
+      </div>
+    );
   }
   
   return children;

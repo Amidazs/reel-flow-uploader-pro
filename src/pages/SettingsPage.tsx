@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Card,
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import Header from "@/components/layout/Header";
 import { useToast } from "@/hooks/use-toast";
+import PlatformConnections from "@/components/upload/PlatformConnections";
 
 const SettingsPage = () => {
   const { toast } = useToast();
@@ -34,12 +34,6 @@ const SettingsPage = () => {
     uploadQuality: "high",
     maxVideoLength: "60",
     defaultHashtags: "#autoreeluploader #videocreator #contentcreator",
-  });
-
-  const [connectedAccounts, setConnectedAccounts] = useState({
-    tiktok: true,
-    youtube: true,
-    facebook: false,
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -63,27 +57,6 @@ const SettingsPage = () => {
       description: "Your upload settings have been updated.",
     });
     // In a real app, this would save to Supabase
-  };
-
-  const handleConnectAccount = (platform: string) => {
-    toast({
-      title: `Connect ${platform}`,
-      description: `Redirecting to ${platform} authorization...`,
-    });
-    // In a real app, this would redirect to the platform's OAuth flow
-  };
-
-  const handleDisconnectAccount = (platform: string) => {
-    setConnectedAccounts({
-      ...connectedAccounts,
-      [platform.toLowerCase()]: false,
-    });
-    
-    toast({
-      title: `${platform} disconnected`,
-      description: `Your ${platform} account has been disconnected.`,
-    });
-    // In a real app, this would revoke the token in Supabase
   };
 
   const handleSaveNotifications = () => {
@@ -141,82 +114,7 @@ const SettingsPage = () => {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Connected Accounts</h3>
                   
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 bg-[#00f2ea]/10 rounded-full flex items-center justify-center">
-                          <span className="text-lg">🎵</span>
-                        </div>
-                        <div>
-                          <p className="font-medium">TikTok</p>
-                          <p className="text-sm text-muted-foreground">
-                            {connectedAccounts.tiktok ? "Connected as @janedoe" : "Not connected"}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {connectedAccounts.tiktok ? (
-                        <Button 
-                          variant="outline" 
-                          onClick={() => handleDisconnectAccount("TikTok")}
-                        >
-                          Disconnect
-                        </Button>
-                      ) : (
-                        <Button onClick={() => handleConnectAccount("TikTok")}>Connect</Button>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 bg-[#ff0000]/10 rounded-full flex items-center justify-center">
-                          <span className="text-lg">📺</span>
-                        </div>
-                        <div>
-                          <p className="font-medium">YouTube</p>
-                          <p className="text-sm text-muted-foreground">
-                            {connectedAccounts.youtube ? "Connected as Jane Doe" : "Not connected"}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {connectedAccounts.youtube ? (
-                        <Button 
-                          variant="outline" 
-                          onClick={() => handleDisconnectAccount("YouTube")}
-                        >
-                          Disconnect
-                        </Button>
-                      ) : (
-                        <Button onClick={() => handleConnectAccount("YouTube")}>Connect</Button>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 bg-[#1877f2]/10 rounded-full flex items-center justify-center">
-                          <span className="text-lg">👥</span>
-                        </div>
-                        <div>
-                          <p className="font-medium">Facebook</p>
-                          <p className="text-sm text-muted-foreground">
-                            {connectedAccounts.facebook ? "Connected as Jane Doe" : "Not connected"}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {connectedAccounts.facebook ? (
-                        <Button 
-                          variant="outline" 
-                          onClick={() => handleDisconnectAccount("Facebook")}
-                        >
-                          Disconnect
-                        </Button>
-                      ) : (
-                        <Button onClick={() => handleConnectAccount("Facebook")}>Connect</Button>
-                      )}
-                    </div>
-                  </div>
+                  <PlatformConnections />
                 </div>
               </CardContent>
             </Card>
