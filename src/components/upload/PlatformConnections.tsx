@@ -1,15 +1,8 @@
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, AlertCircle, Lock } from "lucide-react";
+import { CheckCircle2, AlertCircle, Lock, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +14,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase, useAuth, deletePlatformConnection } from "@/lib/supabase";
+import { useAuthContext } from "@/App";
 
 type Platform = {
   name: string;
@@ -32,8 +28,8 @@ type Platform = {
 };
 
 const PlatformConnections = () => {
-  const { toast } = useToast();
-  const { user, signInWithOAuth } = useAuth();
+  const { toast: shadcnToast } = useToast();
+  const { user, signInWithOAuth } = useAuthContext();
   
   const [platforms, setPlatforms] = useState<Platform[]>([
     {
@@ -53,12 +49,16 @@ const PlatformConnections = () => {
   ]);
   
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Fetch existing connections from Supabase on component mount
   useEffect(() => {
     const fetchConnections = async () => {
       try {
-        if (!user?.id) return;
+        if (!user?.id) {
+          setIsInitialLoading(false);
+          return;
+        }
         
         const { data, error } = await supabase
           .from('platform_connections')
@@ -78,17 +78,19 @@ const PlatformConnections = () => {
           });
           setPlatforms(updatedPlatforms);
         }
+
+        setIsInitialLoading(false);
       } catch (error) {
         console.error('Error fetching platform connections:', error);
-        toast({
-          title: "Failed to load connections",
-          description: "Please refresh the page to try again.",
-        });
+        toast.error("Failed to load connections. Please refresh the page to try again.");
+        setIsInitialLoading(false);
       }
     };
     
     if (user) {
       fetchConnections();
+    } else {
+      setIsInitialLoading(false);
     }
   }, [user]);
 
@@ -97,10 +99,7 @@ const PlatformConnections = () => {
       setIsLoading(prev => ({ ...prev, [platformId]: true }));
       
       if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to connect your accounts."
-        });
+        toast.error("Authentication required. Please log in to connect your accounts.");
         return;
       }
 
@@ -110,15 +109,12 @@ const PlatformConnections = () => {
         throw error;
       }
       
-      // Note: The actual connection will be updated after the OAuth redirect and callback
-      // Since this is a redirect-based flow, we won't update the UI here
+      // The actual connection will be updated after the OAuth redirect and callback
+      // via the OAuthCallbackHandler in App.tsx
       
     } catch (error) {
       console.error(`Error connecting to ${platformId}:`, error);
-      toast({
-        title: "Connection failed",
-        description: `Unable to connect to ${platformId}. Please try again.`,
-      });
+      toast.error(`Unable to connect to ${platformId}. Please try again.`);
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
     }
@@ -129,10 +125,7 @@ const PlatformConnections = () => {
       setIsLoading(prev => ({ ...prev, [platformId]: true }));
       
       if (!user?.id) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to manage your connections."
-        });
+        toast.error("Authentication required. Please log in to manage your connections.");
         return;
       }
       
@@ -147,24 +140,37 @@ const PlatformConnections = () => {
         )
       );
       
-      toast({
-        title: "Disconnected successfully",
-        description: `Your ${platformId} account has been disconnected.`,
-      });
+      toast.success(`Your ${platformId} account has been disconnected.`);
     } catch (error) {
       console.error(`Error disconnecting from ${platformId}:`, error);
-      toast({
-        title: "Disconnection failed",
-        description: `Unable to disconnect from ${platformId}. Please try again.`,
-      });
+      toast.error(`Unable to disconnect from ${platformId}. Please try again.`);
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
     }
   };
 
+  if (isInitialLoading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="ml-2">Loading platform connections...</span>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-4">Platform Connections</h2>
+      
+      {!user && (
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
+          <p className="text-amber-800 text-sm">
+            You need to sign in to manage your platform connections.
+          </p>
+        </div>
+      )}
       
       <div className="space-y-4">
         {platforms.map((platform) => (
@@ -199,7 +205,14 @@ const PlatformConnections = () => {
                         className="border-red-500/20 text-red-500 hover:bg-red-500/10"
                         disabled={isLoading[platform.id]}
                       >
-                        Disconnect
+                        {isLoading[platform.id] ? (
+                          <>
+                            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                            Disconnecting...
+                          </>
+                        ) : (
+                          "Disconnect"
+                        )}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -224,10 +237,19 @@ const PlatformConnections = () => {
                     size="sm"
                     className="border-autoreel-primary/20 text-autoreel-primary hover:bg-autoreel-primary/10"
                     onClick={() => handleConnect(platform.id)}
-                    disabled={isLoading[platform.id]}
+                    disabled={isLoading[platform.id] || !user}
                   >
-                    <Lock className="h-3.5 w-3.5 mr-1" />
-                    Connect
+                    {isLoading[platform.id] ? (
+                      <>
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-3.5 w-3.5 mr-1" />
+                        Connect
+                      </>
+                    )}
                   </Button>
                 </>
               )}

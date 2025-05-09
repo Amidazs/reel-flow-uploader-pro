@@ -1,8 +1,14 @@
 
 import Header from "@/components/layout/Header";
 import AuthSection from "@/components/auth/AuthSection";
+import { useAuthContext } from "@/App";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const { user } = useAuthContext();
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -15,9 +21,19 @@ const Index = () => {
           </p>
         </div>
         
-        <div className="max-w-md mx-auto my-8">
-          <AuthSection />
-        </div>
+        {user ? (
+          <div className="max-w-md mx-auto my-8 text-center">
+            <p className="mb-4">Welcome back! You're signed in as {user.email || 'a registered user'}.</p>
+            <div className="flex gap-4 justify-center">
+              <Button onClick={() => navigate('/uploads')}>Go to Uploads</Button>
+              <Button onClick={() => navigate('/settings')} variant="outline">Manage Settings</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-md mx-auto my-8">
+            <AuthSection />
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12">
           <div className="bg-card rounded-lg p-6 text-center border">
