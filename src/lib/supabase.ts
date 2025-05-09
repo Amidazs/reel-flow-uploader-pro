@@ -1,41 +1,10 @@
 
 import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
+import { supabase as integratedSupabase } from '@/integrations/supabase/client';
 
-// Get environment variables or use fallback values for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://znejyrfbyzcqvdpfhmmg.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZWp5cmZieXpjcXZkcGZobW1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MDYyOTYsImV4cCI6MjA2MjI4MjI5Nn0.9fNa_ernDTBatbt6DmlFjMFIVp9ylI8ULhK-Ujvo2Ug';
-
-// Check if we have valid Supabase credentials
-const hasValidSupabaseConfig = supabaseUrl.includes('znejyrfbyzcqvdpfhmmg') === false && 
-                                supabaseAnonKey.includes('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZWp5cmZieXpjcXZkcGZobW1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MDYyOTYsImV4cCI6MjA2MjI4MjI5Nn0.9fNa_ernDTBatbt6DmlFjMFIVp9ylI8ULhK-Ujvo2Ug') === false;
-
-// Create the Supabase client if we have valid config, otherwise create a mock client for development
-export const supabase = hasValidSupabaseConfig 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : {
-      auth: {
-        getSession: () => Promise.resolve({ data: { session: null } }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-        signInWithOAuth: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        signOut: () => Promise.resolve({ error: null }),
-      },
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            select: () => Promise.resolve({ data: [], error: null }),
-            delete: () => Promise.resolve({ error: null }),
-          }),
-          match: () => ({
-            select: () => Promise.resolve({ data: [], error: null }),
-            delete: () => Promise.resolve({ error: null }),
-          }),
-          upsert: () => ({
-            select: () => Promise.resolve({ data: null, error: null }),
-          }),
-        }),
-      }),
-    };
+// Use the integrated Supabase client that's already properly configured
+export const supabase = integratedSupabase;
 
 // Custom hook to handle authentication
 export const useAuth = () => {
@@ -123,7 +92,7 @@ export const createOrUpdatePlatformConnection = async (
   try {
     const { data, error } = await supabase
       .from('platform_connections')
-      .upsert({
+      .insert({
         user_id: userId,
         platform_id: platformId,
         connected_at: new Date().toISOString(),
@@ -147,7 +116,8 @@ export const deletePlatformConnection = async (userId: string, platformId: strin
     const { error } = await supabase
       .from('platform_connections')
       .delete()
-      .match({ user_id: userId, platform_id: platformId });
+      .eq('user_id', userId)
+      .eq('platform_id', platformId);
 
     if (error) throw error;
     return { error: null };

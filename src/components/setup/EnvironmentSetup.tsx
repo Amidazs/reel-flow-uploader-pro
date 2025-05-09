@@ -2,18 +2,28 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const EnvironmentSetup = () => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  const isConfigured = supabaseUrl && supabaseAnonKey && 
-                       !supabaseUrl.includes('your-project-id') && 
-                       !supabaseAnonKey.includes('your-anon-key');
+  // Since we're now using the integrated Supabase client, we don't need to check for env variables
+  // Just check if the Supabase client exists and is properly configured
+  const isConfigured = !!supabase;
 
   if (isConfigured) {
-    return null;
+    return (
+      <Card className="mb-8 bg-green-50 border-green-200">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
+            Supabase Connected
+          </CardTitle>
+          <CardDescription>
+            Your application is successfully connected to Supabase
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
   }
 
   return (
@@ -29,16 +39,9 @@ const EnvironmentSetup = () => {
       </CardHeader>
       <CardContent>
         <Alert variant="destructive">
-          <AlertTitle>Missing Environment Variables</AlertTitle>
+          <AlertTitle>Connection Issue</AlertTitle>
           <AlertDescription>
-            <p className="mb-2">To connect to Supabase, you need to set the following environment variables:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><code className="bg-muted p-1 rounded">VITE_SUPABASE_URL</code>: Your Supabase project URL</li>
-              <li><code className="bg-muted p-1 rounded">VITE_SUPABASE_ANON_KEY</code>: Your Supabase anonymous key</li>
-            </ul>
-            <p className="mt-2">
-              These can be found in your Supabase project dashboard under Project Settings &gt; API.
-            </p>
+            <p className="mb-2">Unable to connect to Supabase. Please make sure your project is properly connected.</p>
           </AlertDescription>
         </Alert>
       </CardContent>
