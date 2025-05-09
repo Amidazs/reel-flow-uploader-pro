@@ -42,13 +42,14 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Sign in with OAuth provider
+  // Sign in with OAuth provider - Updated to use new window
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/settings`,
+          skipBrowserRedirect: false,  // Ensure browser redirect happens
         },
       });
       

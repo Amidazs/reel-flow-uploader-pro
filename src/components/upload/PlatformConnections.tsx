@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { supabase, useAuth, deletePlatformConnection } from "@/lib/supabase";
@@ -103,6 +104,8 @@ const PlatformConnections = () => {
         return;
       }
 
+      toast.info(`A new window will open for you to sign in with ${platformId}. Please ensure popup blockers are disabled.`);
+      
       const { error } = await signInWithOAuth(platformId as 'google' | 'facebook');
       
       if (error) {
@@ -114,7 +117,7 @@ const PlatformConnections = () => {
       
     } catch (error) {
       console.error(`Error connecting to ${platformId}:`, error);
-      toast.error(`Unable to connect to ${platformId}. Please try again.`);
+      toast.error(`Unable to connect to ${platformId}. Please check your browser settings and try again.`);
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
     }
@@ -171,6 +174,12 @@ const PlatformConnections = () => {
           </p>
         </div>
       )}
+      
+      <Alert className="mb-4 bg-blue-50 border-blue-200">
+        <AlertDescription className="text-blue-800">
+          Connecting to platforms will open a new window. Please ensure popup blockers are disabled.
+        </AlertDescription>
+      </Alert>
       
       <div className="space-y-4">
         {platforms.map((platform) => (

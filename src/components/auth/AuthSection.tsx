@@ -19,6 +19,11 @@ const AuthSection = () => {
       setIsLoading(prev => ({ ...prev, [provider]: true }));
       setAuthError(null);
       
+      toast({
+        title: "Opening authentication window",
+        description: `A new window will open for you to sign in with ${provider}.`,
+      });
+      
       const { error } = await signInWithOAuth(provider);
       
       if (error) {
@@ -26,19 +31,12 @@ const AuthSection = () => {
         throw error;
       }
       
-      // The redirect will happen automatically
-      // We show a toast just in case there's a delay
-      toast({
-        title: "Redirecting...",
-        description: `You'll be redirected to ${provider} to continue sign in.`,
-      });
-      
     } catch (error) {
       console.error(`Error signing in with ${provider}:`, error);
-      setAuthError(`Unable to sign in with ${provider}. Please try again or use a different browser if the popup was blocked.`);
+      setAuthError(`Unable to sign in with ${provider}. Please check if popup blockers are disabled and try again.`);
       toast({
         title: "Authentication failed",
-        description: `Unable to sign in with ${provider}. Please try again.`,
+        description: `Unable to sign in with ${provider}. Please check your browser settings and try again.`,
         variant: "destructive"
       });
     } finally {
@@ -111,14 +109,25 @@ const AuthSection = () => {
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-80">
                   <div className="space-y-2">
-                    <h4 className="font-medium">About popup blockers</h4>
+                    <h4 className="font-medium">About authentication</h4>
                     <p className="text-sm text-muted-foreground">
-                      Some browsers block popups by default. If you're having trouble signing in, please check your browser's popup settings or try using a different browser.
+                      For security reasons, Google and Facebook will open their login pages in a new window or tab.
+                      Please ensure popup blockers are disabled for this site.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      If you don't see a new window open, check your browser's popup blocker settings
+                      or try using a different browser.
                     </p>
                   </div>
                 </PopoverContent>
               </Popover>
             </div>
+            
+            <Alert className="bg-blue-50 border-blue-200 mb-4">
+              <AlertDescription className="text-blue-800">
+                Authentication will open in a new window. Please ensure popup blockers are disabled.
+              </AlertDescription>
+            </Alert>
             
             <Button 
               variant="outline" 
