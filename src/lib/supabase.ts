@@ -3,12 +3,12 @@ import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 
 // Get environment variables or use fallback values for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-id.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://znejyrfbyzcqvdpfhmmg.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZWp5cmZieXpjcXZkcGZobW1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MDYyOTYsImV4cCI6MjA2MjI4MjI5Nn0.9fNa_ernDTBatbt6DmlFjMFIVp9ylI8ULhK-Ujvo2Ug';
 
 // Check if we have valid Supabase credentials
-const hasValidSupabaseConfig = supabaseUrl.includes('your-project-id') === false && 
-                                supabaseAnonKey.includes('your-anon-key') === false;
+const hasValidSupabaseConfig = supabaseUrl.includes('znejyrfbyzcqvdpfhmmg') === false && 
+                                supabaseAnonKey.includes('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZWp5cmZieXpjcXZkcGZobW1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MDYyOTYsImV4cCI6MjA2MjI4MjI5Nn0.9fNa_ernDTBatbt6DmlFjMFIVp9ylI8ULhK-Ujvo2Ug') === false;
 
 // Create the Supabase client if we have valid config, otherwise create a mock client for development
 export const supabase = hasValidSupabaseConfig 
