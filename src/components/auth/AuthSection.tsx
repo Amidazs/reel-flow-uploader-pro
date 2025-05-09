@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,8 +19,8 @@ const AuthSection = () => {
       setAuthError(null);
       
       toast({
-        title: "Opening authentication window",
-        description: `A new window will open for you to sign in with ${provider}.`,
+        title: "Starting authentication process",
+        description: `You'll be redirected to ${provider} to complete the sign-in process.`,
       });
       
       const { error } = await signInWithOAuth(provider);
@@ -33,7 +32,7 @@ const AuthSection = () => {
       
     } catch (error) {
       console.error(`Error signing in with ${provider}:`, error);
-      setAuthError(`Unable to sign in with ${provider}. Please check if popup blockers are disabled and try again.`);
+      setAuthError(`Unable to sign in with ${provider}. Please ensure you've allowed pop-ups for this site.`);
       toast({
         title: "Authentication failed",
         description: `Unable to sign in with ${provider}. Please check your browser settings and try again.`,
@@ -111,12 +110,10 @@ const AuthSection = () => {
                   <div className="space-y-2">
                     <h4 className="font-medium">About authentication</h4>
                     <p className="text-sm text-muted-foreground">
-                      For security reasons, Google and Facebook will open their login pages in a new window or tab.
-                      Please ensure popup blockers are disabled for this site.
+                      When you click a sign-in button, you'll be redirected to the provider's authentication page.
                     </p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      If you don't see a new window open, check your browser's popup blocker settings
-                      or try using a different browser.
+                      After signing in, you'll be redirected back to this application automatically.
                     </p>
                   </div>
                 </PopoverContent>
@@ -125,7 +122,7 @@ const AuthSection = () => {
             
             <Alert className="bg-blue-50 border-blue-200 mb-4">
               <AlertDescription className="text-blue-800">
-                Authentication will open in a new window. Please ensure popup blockers are disabled.
+                You'll be redirected to complete authentication. Make sure you're using the production URL, not localhost.
               </AlertDescription>
             </Alert>
             
@@ -159,7 +156,7 @@ const AuthSection = () => {
                   </svg>
                 </div>
               )}
-              <span>{isLoading['google'] ? 'Connecting...' : 'Continue with Google'}</span>
+              <span>{isLoading['google'] ? 'Redirecting...' : 'Continue with Google'}</span>
             </Button>
             
             <Button 
@@ -177,7 +174,7 @@ const AuthSection = () => {
                   </svg>
                 </div>
               )}
-              <span>{isLoading['facebook'] ? 'Connecting...' : 'Continue with Facebook'}</span>
+              <span>{isLoading['facebook'] ? 'Redirecting...' : 'Continue with Facebook'}</span>
             </Button>
           </>
         ) : (

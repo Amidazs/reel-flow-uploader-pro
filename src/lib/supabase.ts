@@ -42,13 +42,17 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Sign in with OAuth provider - Updated to use new window
+  // Sign in with OAuth provider - Updated to use dynamic redirect URL
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
+      // Get the current window's origin for redirect
+      const redirectTo = window.location.origin;
+      console.log(`Using redirect URL: ${redirectTo}`);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/settings`,
+          redirectTo: redirectTo, // Use dynamic origin instead of hardcoded URL
           skipBrowserRedirect: false,  // Ensure browser redirect happens
         },
       });
