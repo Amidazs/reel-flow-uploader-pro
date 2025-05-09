@@ -2,10 +2,40 @@
 import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Get environment variables or use fallback values for development
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-id.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Check if we have valid Supabase credentials
+const hasValidSupabaseConfig = supabaseUrl.includes('your-project-id') === false && 
+                                supabaseAnonKey.includes('your-anon-key') === false;
+
+// Create the Supabase client if we have valid config, otherwise create a mock client for development
+export const supabase = hasValidSupabaseConfig 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : {
+      auth: {
+        getSession: () => Promise.resolve({ data: { session: null } }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        signInWithOAuth: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+        signOut: () => Promise.resolve({ error: null }),
+      },
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            select: () => Promise.resolve({ data: [], error: null }),
+            delete: () => Promise.resolve({ error: null }),
+          }),
+          match: () => ({
+            select: () => Promise.resolve({ data: [], error: null }),
+            delete: () => Promise.resolve({ error: null }),
+          }),
+          upsert: () => ({
+            select: () => Promise.resolve({ data: null, error: null }),
+          }),
+        }),
+      }),
+    };
 
 // Custom hook to handle authentication
 export const useAuth = () => {

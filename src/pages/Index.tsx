@@ -4,6 +4,7 @@ import AuthSection from "@/components/auth/AuthSection";
 import { useAuthContext } from "@/App";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import EnvironmentSetup from "@/components/setup/EnvironmentSetup";
 
 const Index = () => {
   const { user } = useAuthContext();
@@ -14,6 +15,8 @@ const Index = () => {
       <Header />
       
       <main className="flex-grow container px-4 py-8">
+        <EnvironmentSetup />
+        
         <div className="max-w-4xl mx-auto text-center mb-8">
           <h1 className="text-4xl font-bold mb-4">Welcome to AutoReel</h1>
           <p className="text-xl text-muted-foreground">
