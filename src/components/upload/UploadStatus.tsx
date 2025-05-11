@@ -116,14 +116,18 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
         for (const status of uploadStatuses) {
           const platformId = status.platform.toLowerCase();
           
-          await supabase.from("video_uploads").insert({
-            user_id: user.id,
-            platform_id: platformId,
-            title: videoTitle,
-            description: `Uploaded via AutoReel on ${new Date().toLocaleDateString()}`,
-            tags: ["autoreel", "demo"],
-            file_name: `${videoTitle.replace(/\s+/g, '-').toLowerCase()}.mp4`
-          });
+          try {
+            await supabase.from("video_uploads").insert({
+              user_id: user.id,
+              platform_id: platformId,
+              title: videoTitle,
+              description: `Uploaded via AutoReel on ${new Date().toLocaleDateString()}`,
+              tags: ["autoreel", "demo"],
+              file_name: `${videoTitle.replace(/\s+/g, '-').toLowerCase()}.mp4`
+            });
+          } catch (error) {
+            console.error(`Error creating upload record for ${platformId}:`, error);
+          }
         }
         
         // Start simulated upload process
@@ -166,17 +170,21 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
               const platformId = status.platform.toLowerCase();
               const videoUrl = `https://${platformId}.com/video/123456`;
               
-              supabase
-                .from("video_uploads")
-                .update({ video_url: videoUrl })
-                .eq("user_id", user.id)
-                .eq("platform_id", platformId)
-                .then(() => {
-                  console.log(`Updated ${platformId} upload to completed`);
-                })
-                .catch(error => {
-                  console.error(`Error updating ${platformId} upload:`, error);
-                });
+              try {
+                supabase
+                  .from("video_uploads")
+                  .update({ video_url: videoUrl })
+                  .eq("user_id", user.id)
+                  .eq("platform_id", platformId)
+                  .then(() => {
+                    console.log(`Updated ${platformId} upload to completed`);
+                  })
+                  .catch(error => {
+                    console.error(`Error updating ${platformId} upload:`, error);
+                  });
+              } catch (error) {
+                console.error(`Error updating ${platformId} upload:`, error);
+              }
             }
             
             return {
@@ -239,17 +247,21 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
         const platformId = platform.toLowerCase();
         const videoUrl = `https://${platformId}.com/video/123456`;
         
-        supabase
-          .from("video_uploads")
-          .update({ video_url: videoUrl })
-          .eq("user_id", user.id)
-          .eq("platform_id", platformId)
-          .then(() => {
-            console.log(`Updated ${platformId} upload to completed`);
-          })
-          .catch(error => {
-            console.error(`Error updating ${platformId} upload:`, error);
-          });
+        try {
+          supabase
+            .from("video_uploads")
+            .update({ video_url: videoUrl })
+            .eq("user_id", user.id)
+            .eq("platform_id", platformId)
+            .then(() => {
+              console.log(`Updated ${platformId} upload to completed`);
+            })
+            .catch(error => {
+              console.error(`Error updating ${platformId} upload:`, error);
+            });
+        } catch (error) {
+          console.error(`Error updating ${platformId} upload:`, error);
+        }
       }
     }, 5000);
   };
