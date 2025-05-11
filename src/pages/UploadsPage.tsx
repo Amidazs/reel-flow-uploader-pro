@@ -87,17 +87,28 @@ const UploadsPage = () => {
         if (error) throw error;
 
         // Process the data into our format
-        const formattedUploads = (data || []).map(upload => {
+        const formattedUploads: VideoUpload[] = (data || []).map(upload => {
           // Generate a random number for views for demo purposes
           // In a real app, this would come from analytics data
           const randomViews = Math.floor(Math.random() * 5000);
+          
+          // Ensure the status is one of the allowed values
+          let uploadStatus: "completed" | "processing" | "failed";
+          
+          if (upload.video_url) {
+            uploadStatus = "completed";
+          } else if (upload.platform_id === "failed") {
+            uploadStatus = "failed";
+          } else {
+            uploadStatus = "processing";
+          }
           
           return {
             id: upload.id,
             title: upload.title,
             thumbnail: `https://picsum.photos/seed/${upload.id}/300/200`, // Placeholder image
-            date: new Date(upload.uploaded_at).toISOString().split('T')[0],
-            status: upload.video_url ? "completed" : "processing",
+            date: new Date(upload.uploaded_at || new Date()).toISOString().split('T')[0],
+            status: uploadStatus,
             platforms: [upload.platform_id],
             views: randomViews
           };

@@ -109,30 +109,40 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
       }))
     );
 
-    // Start simulated upload process (in real app, this would make API calls)
-    simulateUploadProgress();
-    
-    // In a real implementation, we would create video_uploads records in Supabase here
+    // Create video upload records in Supabase
     if (user) {
       try {
-        // For demonstration purposes, create upload records in Supabase
+        // Create upload records for each selected platform
         for (const status of uploadStatuses) {
+          const platformId = status.platform.toLowerCase();
+          
           await supabase.from("video_uploads").insert({
             user_id: user.id,
-            platform_id: status.platform.toLowerCase(),
+            platform_id: platformId,
             title: videoTitle,
             description: `Uploaded via AutoReel on ${new Date().toLocaleDateString()}`,
             tags: ["autoreel", "demo"],
             file_name: `${videoTitle.replace(/\s+/g, '-').toLowerCase()}.mp4`
           });
         }
+        
+        // Start simulated upload process
+        // In a real app, this would be replaced with actual API calls to upload videos
+        simulateUploadProgress();
+        
       } catch (error) {
         console.error("Error creating upload records:", error);
+        toast({
+          title: "Upload failed",
+          description: "Failed to create upload records",
+          variant: "destructive"
+        });
       }
     }
   };
 
   // Simulate upload progress for demo
+  // In a real app, this would be replaced with progress updates from the actual upload process
   const simulateUploadProgress = () => {
     let tick = 0;
     const interval = setInterval(() => {
@@ -151,6 +161,24 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
           
           // Simulate completion or failure
           if (tick >= 6 + index * 2 && index !== 2) {
+            // Update Supabase record with completed status
+            if (user) {
+              const platformId = status.platform.toLowerCase();
+              const videoUrl = `https://${platformId}.com/video/123456`;
+              
+              supabase
+                .from("video_uploads")
+                .update({ video_url: videoUrl })
+                .eq("user_id", user.id)
+                .eq("platform_id", platformId)
+                .then(() => {
+                  console.log(`Updated ${platformId} upload to completed`);
+                })
+                .catch(error => {
+                  console.error(`Error updating ${platformId} upload:`, error);
+                });
+            }
+            
             return {
               ...status,
               status: "complete",
@@ -205,6 +233,24 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
             : status
         )
       );
+      
+      // Update Supabase record with completed status
+      if (user) {
+        const platformId = platform.toLowerCase();
+        const videoUrl = `https://${platformId}.com/video/123456`;
+        
+        supabase
+          .from("video_uploads")
+          .update({ video_url: videoUrl })
+          .eq("user_id", user.id)
+          .eq("platform_id", platformId)
+          .then(() => {
+            console.log(`Updated ${platformId} upload to completed`);
+          })
+          .catch(error => {
+            console.error(`Error updating ${platformId} upload:`, error);
+          });
+      }
     }, 5000);
   };
 
