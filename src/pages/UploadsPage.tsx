@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,7 +10,8 @@ import {
   Upload, 
   Clock, 
   CheckCircle, 
-  AlertCircle 
+  AlertCircle, 
+  Loader2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -33,55 +34,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAuthContext } from "@/App";
+import { supabase } from "@/lib/supabase";
 
-// Mock uploads for demonstration
-const initialMockUploads = [
-  {
-    id: "1",
-    title: "How to Make Pancakes - Quick Recipe",
-    thumbnail: "https://picsum.photos/seed/pancakes/300/200",
-    date: "2025-05-07",
-    status: "completed",
-    platforms: ["tiktok", "youtube", "facebook"],
-    views: 2450
-  },
-  {
-    id: "2",
-    title: "Morning Routine for Productivity",
-    thumbnail: "https://picsum.photos/seed/morning/300/200",
-    date: "2025-05-05",
-    status: "completed",
-    platforms: ["youtube", "facebook"],
-    views: 1890
-  },
-  {
-    id: "3",
-    title: "5 Tips for Better Sleep",
-    thumbnail: "https://picsum.photos/seed/sleep/300/200",
-    date: "2025-05-02",
-    status: "completed",
-    platforms: ["tiktok"],
-    views: 3200
-  },
-  {
-    id: "4",
-    title: "Summer Fashion Trends 2025",
-    thumbnail: "https://picsum.photos/seed/fashion/300/200",
-    date: "2025-04-28",
-    status: "processing",
-    platforms: ["tiktok", "youtube"],
-    views: 0
-  },
-  {
-    id: "5",
-    title: "DIY Home Decoration Ideas",
-    thumbnail: "https://picsum.photos/seed/diy/300/200",
-    date: "2025-04-25",
-    status: "failed",
-    platforms: ["facebook"],
-    views: 0
-  }
-];
+type VideoUpload = {
+  id: string;
+  title: string;
+  thumbnail?: string;
+  date: string;
+  status: "completed" | "processing" | "failed";
+  platforms: string[];
+  views: number;
+};
 
 const StatusIcon = ({ status }: { status: string }) => {
   switch (status) {
@@ -97,13 +61,65 @@ const StatusIcon = ({ status }: { status: string }) => {
 };
 
 const UploadsPage = () => {
+  const { user } = useAuthContext();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [mockUploads, setMockUploads] = useState(initialMockUploads);
+  const [uploads, setUploads] = useState<VideoUpload[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const filteredUploads = mockUploads.filter(upload => {
+  // Fetch uploads from Supabase
+  useEffect(() => {
+    const fetchUploads = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('video_uploads')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('uploaded_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Process the data into our format
+        const formattedUploads = (data || []).map(upload => {
+          // Generate a random number for views for demo purposes
+          // In a real app, this would come from analytics data
+          const randomViews = Math.floor(Math.random() * 5000);
+          
+          return {
+            id: upload.id,
+            title: upload.title,
+            thumbnail: `https://picsum.photos/seed/${upload.id}/300/200`, // Placeholder image
+            date: new Date(upload.uploaded_at).toISOString().split('T')[0],
+            status: upload.video_url ? "completed" : "processing",
+            platforms: [upload.platform_id],
+            views: randomViews
+          };
+        });
+
+        setUploads(formattedUploads);
+      } catch (error) {
+        console.error("Error fetching uploads:", error);
+        toast({
+          title: "Failed to load uploads",
+          description: "There was a problem retrieving your uploads",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUploads();
+  }, [user, toast]);
+
+  const filteredUploads = uploads.filter(upload => {
     const matchesSearch = upload.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || upload.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -117,14 +133,30 @@ const UploadsPage = () => {
     window.location.href = "/";
   };
 
-  const handleDeleteUpload = (id: string) => {
-    // Actually remove the item from our state
-    setMockUploads(prevUploads => prevUploads.filter(upload => upload.id !== id));
-    
-    toast({
-      title: "Video deleted",
-      description: "The video has been removed from your uploads.",
-    });
+  const handleDeleteUpload = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('video_uploads')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      // Update state to remove the deleted upload
+      setUploads(prevUploads => prevUploads.filter(upload => upload.id !== id));
+      
+      toast({
+        title: "Video deleted",
+        description: "The video has been removed from your uploads.",
+      });
+    } catch (error) {
+      console.error("Error deleting upload:", error);
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete the video. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const statusOptions = [
@@ -208,9 +240,28 @@ const UploadsPage = () => {
           </div>
         </div>
         
-        {filteredUploads.length === 0 ? (
+        {isLoading ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No uploads found. Try adjusting your filters.</p>
+            <Loader2 size={36} className="animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading your uploads...</p>
+          </div>
+        ) : filteredUploads.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">
+              {uploads.length === 0
+                ? "You haven't uploaded any videos yet."
+                : "No uploads found. Try adjusting your filters."}
+            </p>
+            {uploads.length === 0 && (
+              <Button 
+                onClick={handleNewUpload} 
+                variant="outline" 
+                className="mt-4"
+              >
+                <Upload size={16} className="mr-2" />
+                Upload Your First Video
+              </Button>
+            )}
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -229,7 +280,7 @@ const UploadsPage = () => {
                         className="w-6 h-6 flex items-center justify-center bg-black/70 rounded-full text-xs"
                         title={platform.charAt(0).toUpperCase() + platform.slice(1)}
                       >
-                        {platformIcons[platform]}
+                        {platformIcons[platform] || "📱"}
                       </span>
                     ))}
                   </div>
@@ -304,7 +355,7 @@ const UploadsPage = () => {
                             className="flex items-center justify-center text-xs"
                             title={platform.charAt(0).toUpperCase() + platform.slice(1)}
                           >
-                            {platformIcons[platform]}
+                            {platformIcons[platform] || "📱"}
                           </span>
                         ))}
                       </div>
