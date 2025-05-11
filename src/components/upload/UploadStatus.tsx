@@ -130,8 +130,7 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
           }
         }
         
-        // Start simulated upload process
-        // In a real app, this would be replaced with actual API calls to upload videos
+        // Start simulated upload progress
         simulateUploadProgress();
         
       } catch (error) {
@@ -146,7 +145,6 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
   };
 
   // Simulate upload progress for demo
-  // In a real app, this would be replaced with progress updates from the actual upload process
   const simulateUploadProgress = () => {
     let tick = 0;
     const interval = setInterval(() => {
@@ -171,17 +169,20 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
               const videoUrl = `https://${platformId}.com/video/123456`;
               
               try {
-                supabase
-                  .from("video_uploads")
-                  .update({ video_url: videoUrl })
-                  .eq("user_id", user.id)
-                  .eq("platform_id", platformId)
-                  .then(() => {
+                // Fix: Using async/await instead of promise chaining with .catch()
+                (async () => {
+                  try {
+                    await supabase
+                      .from("video_uploads")
+                      .update({ video_url: videoUrl })
+                      .eq("user_id", user.id)
+                      .eq("platform_id", platformId);
+                    
                     console.log(`Updated ${platformId} upload to completed`);
-                  })
-                  .catch(error => {
+                  } catch (error) {
                     console.error(`Error updating ${platformId} upload:`, error);
-                  });
+                  }
+                })();
               } catch (error) {
                 console.error(`Error updating ${platformId} upload:`, error);
               }
@@ -248,17 +249,20 @@ const UploadStatus = ({ videoTitle = "Untitled Video" }: UploadStatusProps) => {
         const videoUrl = `https://${platformId}.com/video/123456`;
         
         try {
-          supabase
-            .from("video_uploads")
-            .update({ video_url: videoUrl })
-            .eq("user_id", user.id)
-            .eq("platform_id", platformId)
-            .then(() => {
+          // Fix: Using async/await instead of promise chaining with .catch()
+          (async () => {
+            try {
+              await supabase
+                .from("video_uploads")
+                .update({ video_url: videoUrl })
+                .eq("user_id", user.id)
+                .eq("platform_id", platformId);
+                
               console.log(`Updated ${platformId} upload to completed`);
-            })
-            .catch(error => {
+            } catch (error) {
               console.error(`Error updating ${platformId} upload:`, error);
-            });
+            }
+          })();
         } catch (error) {
           console.error(`Error updating ${platformId} upload:`, error);
         }
