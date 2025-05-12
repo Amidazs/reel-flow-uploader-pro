@@ -142,6 +142,14 @@ const UploadsPage = () => {
     setShowUploadDialog(true);
   };
 
+  const handleVideoSelected = (file: File) => {
+    // Handle the selected video file
+    console.log("Video selected:", file.name);
+    
+    // For now, we'll just log the file information
+    // In a real implementation, you would save this to state or start processing
+  };
+
   const handleDeleteUpload = async (id: string) => {
     try {
       const { error } = await supabase
@@ -204,6 +212,7 @@ const UploadsPage = () => {
                 <DialogTitle>Upload New Video</DialogTitle>
               </DialogHeader>
               <VideoUploadCard 
+                onVideoSelected={handleVideoSelected}
                 onComplete={() => {
                   setShowUploadDialog(false);
                   // Refresh the uploads list
