@@ -8,9 +8,10 @@ import { useToast } from "@/components/ui/use-toast";
 
 type VideoUploadCardProps = {
   onVideoSelected: (file: File) => void;
+  onComplete?: () => void; // Add the onComplete prop as optional
 };
 
-const VideoUploadCard = ({ onVideoSelected }: VideoUploadCardProps) => {
+const VideoUploadCard = ({ onVideoSelected, onComplete }: VideoUploadCardProps) => {
   const { toast } = useToast();
   const [dragActive, setDragActive] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -97,6 +98,10 @@ const VideoUploadCard = ({ onVideoSelected }: VideoUploadCardProps) => {
         if (prev >= 100) {
           clearInterval(interval);
           setIsUploading(false);
+          // Call the onComplete callback when upload is finished
+          if (onComplete) {
+            onComplete();
+          }
           return 100;
         }
         return prev + 10;
