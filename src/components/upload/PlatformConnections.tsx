@@ -27,6 +27,7 @@ type Platform = {
   icon: string;
   color: string;
   description: string;
+  limitedAccess?: boolean; // Added flag for platforms with limited development access
 };
 
 const PlatformConnections = () => {
@@ -40,7 +41,8 @@ const PlatformConnections = () => {
       connected: false,
       icon: "📺",
       color: "#ff0000",
-      description: "Upload videos to your YouTube channel"
+      description: "Upload videos to your YouTube channel",
+      limitedAccess: true
     },
     {
       name: "Facebook",
@@ -48,7 +50,8 @@ const PlatformConnections = () => {
       connected: false,
       icon: "👥",
       color: "#1877f2",
-      description: "Share content to Facebook pages or profile"
+      description: "Share content to Facebook pages or profile",
+      limitedAccess: true
     },
   ]);
   
@@ -117,10 +120,13 @@ const PlatformConnections = () => {
 
       console.log(`Initiating connection to ${platformId}...`);
       
+      // Show platform-specific messages
+      const platformName = platformId === 'google' ? 'YouTube' : platformId.charAt(0).toUpperCase() + platformId.slice(1);
+      
+      toast.info(`${platformName} authorization will open in a new window. Please ensure popup blockers are disabled.`);
+      
       if (platformId === 'google') {
-        toast.info(`YouTube/Google authorization will open in a new window. Please ensure popup blockers are disabled.`);
-      } else {
-        toast.info(`A new window will open for you to sign in with ${platformId}. Please ensure popup blockers are disabled.`);
+        toast.info("Note: This is a development app with limited access. You'll need to click 'Continue' on the unverified app screen.");
       }
       
       const { data, error } = await signInWithOAuth(platformId as 'google' | 'facebook');
@@ -207,7 +213,7 @@ const PlatformConnections = () => {
         <AlertDescription className="text-blue-800">
           {platforms.some(p => p.connected) 
             ? "Your accounts are connected. You can upload content to these platforms."
-            : "Connecting to platforms will open a new window. Please ensure popup blockers are disabled."}
+            : "These are development connections with limited access. You may see 'unverified app' warnings."}
         </AlertDescription>
       </Alert>
       
@@ -229,6 +235,11 @@ const PlatformConnections = () => {
                 <p className="text-xs text-muted-foreground">
                   {platform.connected ? "Connected" : platform.description}
                 </p>
+                {platform.limitedAccess && !platform.connected && (
+                  <span className="text-xs text-amber-600">
+                    Development access only
+                  </span>
+                )}
               </div>
             </div>
             
@@ -301,7 +312,7 @@ const PlatformConnections = () => {
             Connect your accounts to enable automatic uploads
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Your API keys and tokens are securely stored in Supabase with encryption
+            In development mode, access is limited to app testers only
           </p>
         </div>
       </div>

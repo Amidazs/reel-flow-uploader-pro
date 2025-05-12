@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +35,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuthContext } from "@/App";
 import { supabase } from "@/lib/supabase";
+import VideoUploadCard from "@/components/upload/VideoUploadCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 type VideoUpload = {
   id: string;
@@ -68,6 +69,7 @@ const UploadsPage = () => {
   const [uploads, setUploads] = useState<VideoUpload[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   // Fetch uploads from Supabase
   useEffect(() => {
@@ -137,11 +139,7 @@ const UploadsPage = () => {
   });
 
   const handleNewUpload = () => {
-    toast({
-      title: "Upload feature",
-      description: "Redirecting to upload page...",
-    });
-    window.location.href = "/";
+    setShowUploadDialog(true);
   };
 
   const handleDeleteUpload = async (id: string) => {
@@ -191,13 +189,29 @@ const UploadsPage = () => {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
           <h1 className="text-3xl font-bold">Your Uploads</h1>
           
-          <Button 
-            onClick={handleNewUpload} 
-            className="button-gradient text-white"
-          >
-            <Upload size={18} className="mr-1" />
-            New Upload
-          </Button>
+          <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={handleNewUpload} 
+                className="button-gradient text-white"
+              >
+                <Upload size={18} className="mr-1" />
+                New Upload
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Upload New Video</DialogTitle>
+              </DialogHeader>
+              <VideoUploadCard 
+                onComplete={() => {
+                  setShowUploadDialog(false);
+                  // Refresh the uploads list
+                  window.location.reload();
+                }} 
+              />
+            </DialogContent>
+          </Dialog>
         </div>
         
         <div className="bg-card border rounded-lg shadow-sm p-4 mb-8">

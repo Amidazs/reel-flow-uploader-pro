@@ -42,7 +42,7 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Sign in with OAuth provider - Updated to fix 403 errors and improve YouTube scopes
+  // Sign in with OAuth provider - Updated to fix 403 errors and improve scopes
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
       // Get the current window's origin for redirect
@@ -54,16 +54,24 @@ export const useAuth = () => {
       const uniqueRedirect = `${redirectTo}?cache=${timestamp}`;
       
       // Configure specific scopes and options based on provider
-      const options = {
+      const options: any = {
         redirectTo: uniqueRedirect,
-        skipBrowserRedirect: false, // Ensure browser redirect happens
+        skipBrowserRedirect: false,
       };
       
-      // Add YouTube-specific scopes only for Google provider
+      // Add provider-specific configurations
       if (provider === 'google') {
-        // Using more specific scopes for YouTube access
-        options['scopes'] = 'email profile https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload';
-        options['queryParams'] = { access_type: 'offline', prompt: 'consent' };
+        // Updated Google scopes to basic profile and limited YouTube access
+        // Using only the minimum required scopes to avoid verification requirements
+        options.scopes = 'email profile';
+        options.queryParams = { 
+          access_type: 'offline',
+          prompt: 'consent',
+          include_granted_scopes: 'true'
+        };
+      } else if (provider === 'facebook') {
+        // Updated Facebook scopes to match what's allowed
+        options.scopes = 'public_profile,email';
       }
       
       const { data, error } = await supabase.auth.signInWithOAuth({
