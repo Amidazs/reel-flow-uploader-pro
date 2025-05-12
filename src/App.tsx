@@ -38,7 +38,7 @@ export const useAuthContext = () => {
 const OAuthCallbackHandler = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuthContext();
+  const { user, loading } = useAuthContext();
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -56,11 +56,19 @@ const OAuthCallbackHandler = () => {
           provider,
           expiresIn,
           hash: location.hash,
-          url: window.location.href
+          url: window.location.href,
+          isAuthenticated: !!user
         });
         
-        if (accessToken && provider && user?.id) {
-          console.log("Processing platform connection for:", provider);
+        if (accessToken && provider) {
+          if (!user) {
+            console.log("No authenticated user found, but received OAuth tokens");
+            toast.error("Authentication required. Please log in and try again.");
+            navigate("/");
+            return;
+          }
+
+          console.log(`Processing ${provider} connection for user:`, user.id);
           
           // Calculate expiry time (convert expires_in from seconds to a date)
           const expiresAt = expiresIn 
@@ -92,9 +100,10 @@ const OAuthCallbackHandler = () => {
           }
           
           // Reload the page to display updated connections
-          // We use replace instead of navigate to clean the URL
+          // Use queryClient to invalidate relevant queries
           setTimeout(() => {
-            window.location.replace('/settings');
+            // Redirect to settings page and force a refresh to show updated connections
+            window.location.href = '/settings';
           }, 500);
         } else if (location.hash && location.hash.includes('access_token')) {
           // We have a hash with access_token but something is missing
@@ -105,7 +114,7 @@ const OAuthCallbackHandler = () => {
             hash: location.hash
           });
           
-          if (!user?.id) {
+          if (!user) {
             toast.error("Authentication required. Please log in and try again.");
             navigate("/");
           } else {
@@ -120,14 +129,15 @@ const OAuthCallbackHandler = () => {
       }
     };
 
-    if (location.hash && location.hash.includes('access_token')) {
+    // Only process OAuth callback if we have a hash and not loading
+    if (location.hash && location.hash.includes('access_token') && !loading) {
       console.log("OAuth callback hash detected, processing...");
       handleOAuthCallback();
     }
-  }, [location, navigate, user]);
+  }, [location, navigate, user, loading]); // Added loading dependency
 
   // Show a loading state while processing the callback
-  if (location.hash && location.hash.includes('access_token')) {
+  if (location.hash && location.hash.includes('access_token') && loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p>Processing your login... Please wait.</p>

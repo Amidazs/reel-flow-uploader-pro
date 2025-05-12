@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { supabase, useAuth, deletePlatformConnection } from "@/lib/supabase";
 import { useAuthContext } from "@/App";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Platform = {
   name: string;
@@ -33,6 +34,7 @@ type Platform = {
 const PlatformConnections = () => {
   const { toast: shadcnToast } = useToast();
   const { user, signInWithOAuth } = useAuthContext();
+  const queryClient = useQueryClient();
   
   const [platforms, setPlatforms] = useState<Platform[]>([
     {
@@ -102,12 +104,21 @@ const PlatformConnections = () => {
       }
     };
     
-    if (user) {
+    // Add force refresh support - fetch again when the component is mounted or window is focused
+    fetchConnections();
+
+    // Set up event listener for when window regains focus
+    const handleFocus = () => {
+      console.log("Window focused, refreshing connections...");
       fetchConnections();
-    } else {
-      setIsInitialLoading(false);
-    }
-  }, [user]);  // Removed platforms from dependency array to prevent potential infinite loops
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user, platforms]);  
 
   const handleConnect = async (platformId: string) => {
     try {

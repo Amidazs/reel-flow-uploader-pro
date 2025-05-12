@@ -2,6 +2,7 @@
 import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 import { supabase as integratedSupabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Use the integrated Supabase client that's already properly configured
 export const supabase = integratedSupabase;
@@ -180,9 +181,14 @@ export const createOrUpdatePlatformConnection = async (
     }
     
     console.log(`Successfully created/updated ${platformId} connection:`, result.data);
+
+    // Show success toast
+    toast.success(`${platformId === 'google' ? 'YouTube' : platformId} connection saved successfully!`);
+    
     return { data: result.data, error: null };
   } catch (error) {
     console.error(`Error creating/updating ${platformId} connection:`, error);
+    toast.error(`Failed to save ${platformId} connection. Please try again.`);
     return { data: null, error };
   }
 };
