@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -50,7 +49,16 @@ const OAuthCallbackHandler = () => {
         const provider = hashParams.get('provider');
         const expiresIn = hashParams.get('expires_in');
         
+        console.log("OAuth callback detected:", {
+          accessToken: accessToken ? "present" : "missing",
+          refreshToken: refreshToken ? "present" : "missing", 
+          provider,
+          expiresIn
+        });
+        
         if (accessToken && provider && user?.id) {
+          console.log("Processing platform connection for:", provider);
+          
           // Calculate expiry time (convert expires_in from seconds to a date)
           const expiresAt = expiresIn 
             ? new Date(Date.now() + parseInt(expiresIn) * 1000).toISOString() 
@@ -66,15 +74,33 @@ const OAuthCallbackHandler = () => {
           );
 
           if (error) {
+            console.error("Error creating platform connection:", error);
             throw error;
           }
 
+          console.log(`${provider} connection successful!`);
+          
           // Show success message
           toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} connected successfully!`);
           
           // Reload the page to display updated connections
           // We use replace instead of navigate to clean the URL
           window.location.replace('/settings');
+        } else if (location.hash && location.hash.includes('access_token')) {
+          // We have a hash with access_token but something is missing
+          console.error("OAuth callback error: Missing required parameters", { 
+            accessToken: !!accessToken, 
+            provider, 
+            userId: user?.id 
+          });
+          
+          if (!user?.id) {
+            toast.error("Authentication required. Please log in and try again.");
+            navigate("/");
+          } else {
+            toast.error("Failed to connect account. Please try again.");
+            navigate("/settings");
+          }
         }
       } catch (error) {
         console.error('Error processing OAuth callback:', error);
@@ -84,6 +110,7 @@ const OAuthCallbackHandler = () => {
     };
 
     if (location.hash && location.hash.includes('access_token')) {
+      console.log("OAuth callback hash detected, processing...");
       handleOAuthCallback();
     }
   }, [location, navigate, user]);
@@ -146,10 +173,10 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
-              <>
+              <ProtectedRoute>
                 <OAuthCallbackHandler />
                 <SettingsPage />
-              </>
+              </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>

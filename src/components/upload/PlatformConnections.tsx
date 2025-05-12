@@ -61,12 +61,19 @@ const PlatformConnections = () => {
           return;
         }
         
+        console.log("Fetching platform connections for user:", user.id);
+        
         const { data, error } = await supabase
           .from('platform_connections')
           .select('*')
           .eq('user_id', user.id);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching connections:", error);
+          throw error;
+        }
+        
+        console.log("Fetched platform connections:", data);
         
         if (data && data.length > 0) {
           // Update platforms with connection status from database
@@ -78,6 +85,7 @@ const PlatformConnections = () => {
             };
           });
           setPlatforms(updatedPlatforms);
+          console.log("Updated platforms with connection status:", updatedPlatforms);
         }
 
         setIsInitialLoading(false);
@@ -93,7 +101,7 @@ const PlatformConnections = () => {
     } else {
       setIsInitialLoading(false);
     }
-  }, [user]);
+  }, [user, platforms]);
 
   const handleConnect = async (platformId: string) => {
     try {
@@ -104,13 +112,18 @@ const PlatformConnections = () => {
         return;
       }
 
+      console.log(`Initiating connection to ${platformId}...`);
+      
       toast.info(`A new window will open for you to sign in with ${platformId}. Please ensure popup blockers are disabled.`);
       
-      const { error } = await signInWithOAuth(platformId as 'google' | 'facebook');
+      const { data, error } = await signInWithOAuth(platformId as 'google' | 'facebook');
       
       if (error) {
+        console.error(`Error during OAuth flow:`, error);
         throw error;
       }
+      
+      console.log(`OAuth initiated successfully`, data);
       
       // The actual connection will be updated after the OAuth redirect and callback
       // via the OAuthCallbackHandler in App.tsx
@@ -132,9 +145,16 @@ const PlatformConnections = () => {
         return;
       }
       
+      console.log(`Disconnecting platform: ${platformId}`);
+      
       const { error } = await deletePlatformConnection(user.id, platformId);
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error disconnecting platform:", error);
+        throw error;
+      }
+      
+      console.log(`Platform disconnected: ${platformId}`);
       
       // Update UI
       setPlatforms(prevPlatforms => 

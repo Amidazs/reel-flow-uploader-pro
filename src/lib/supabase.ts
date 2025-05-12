@@ -42,22 +42,32 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Sign in with OAuth provider - Updated to use dynamic redirect URL
+  // Sign in with OAuth provider - Updated to use dynamic redirect URL and better debugging
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
       // Get the current window's origin for redirect
       const redirectTo = window.location.origin;
-      console.log(`Using redirect URL: ${redirectTo}`);
+      console.log(`Initiating ${provider} OAuth flow with redirect URL: ${redirectTo}`);
+      
+      // Add timestamp to avoid caching issues with redirects
+      const timestamp = new Date().getTime();
+      const uniqueRedirect = `${redirectTo}?cache=${timestamp}`;
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: redirectTo, // Use dynamic origin instead of hardcoded URL
-          skipBrowserRedirect: false,  // Ensure browser redirect happens
+          redirectTo: uniqueRedirect,
+          skipBrowserRedirect: false, // Ensure browser redirect happens
+          scopes: provider === 'google' ? 'https://www.googleapis.com/auth/youtube' : '', // Add required scopes for YouTube
         },
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error(`OAuth error:`, error);
+        throw error;
+      }
+      
+      console.log(`OAuth flow started:`, data);
       return { data, error: null };
     } catch (error) {
       console.error(`Error signing in with ${provider}:`, error);
@@ -95,20 +105,65 @@ export const createOrUpdatePlatformConnection = async (
   expiresAt?: string
 ) => {
   try {
-    const { data, error } = await supabase
+    console.log(`Creating/updating platform connection:`, {
+      userId,
+      platformId,
+      accessToken: accessToken ? "present" : "missing",
+      refreshToken: refreshToken ? "present" : "missing",
+      expiresAt
+    });
+    
+    // First check if connection already exists
+    const { data: existing, error: checkError } = await supabase
       .from('platform_connections')
-      .insert({
-        user_id: userId,
-        platform_id: platformId,
-        connected_at: new Date().toISOString(),
-        access_token: accessToken,
-        refresh_token: refreshToken || null,
-        expires_at: expiresAt || null,
-      })
-      .select();
+      .select('id')
+      .eq('user_id', userId)
+      .eq('platform_id', platformId)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Error checking existing connection:", checkError);
+      throw checkError;
+    }
+    
+    let result;
+    
+    if (existing) {
+      // Update existing connection
+      console.log(`Updating existing ${platformId} connection for user ${userId}`);
+      result = await supabase
+        .from('platform_connections')
+        .update({
+          access_token: accessToken,
+          refresh_token: refreshToken || null,
+          expires_at: expiresAt || null,
+          connected_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .select();
+    } else {
+      // Create new connection
+      console.log(`Creating new ${platformId} connection for user ${userId}`);
+      result = await supabase
+        .from('platform_connections')
+        .insert({
+          user_id: userId,
+          platform_id: platformId,
+          connected_at: new Date().toISOString(),
+          access_token: accessToken,
+          refresh_token: refreshToken || null,
+          expires_at: expiresAt || null,
+        })
+        .select();
+    }
 
-    if (error) throw error;
-    return { data, error: null };
+    if (result.error) {
+      console.error(`Error creating/updating ${platformId} connection:`, result.error);
+      throw result.error;
+    }
+    
+    console.log(`Successfully created/updated ${platformId} connection:`, result.data);
+    return { data: result.data, error: null };
   } catch (error) {
     console.error(`Error creating/updating ${platformId} connection:`, error);
     return { data: null, error };
@@ -118,13 +173,20 @@ export const createOrUpdatePlatformConnection = async (
 // Function to delete a platform connection
 export const deletePlatformConnection = async (userId: string, platformId: string) => {
   try {
+    console.log(`Deleting platform connection: ${platformId} for user ${userId}`);
+    
     const { error } = await supabase
       .from('platform_connections')
       .delete()
       .eq('user_id', userId)
       .eq('platform_id', platformId);
 
-    if (error) throw error;
+    if (error) {
+      console.error(`Error deleting ${platformId} connection:`, error);
+      throw error;
+    }
+    
+    console.log(`Successfully deleted ${platformId} connection`);
     return { error: null };
   } catch (error) {
     console.error(`Error deleting ${platformId} connection:`, error);
