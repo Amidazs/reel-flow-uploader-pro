@@ -26,6 +26,7 @@ type Platform = {
   connected: boolean;
   icon: string;
   color: string;
+  description: string;
 };
 
 const PlatformConnections = () => {
@@ -39,6 +40,7 @@ const PlatformConnections = () => {
       connected: false,
       icon: "📺",
       color: "#ff0000",
+      description: "Upload videos to your YouTube channel"
     },
     {
       name: "Facebook",
@@ -46,6 +48,7 @@ const PlatformConnections = () => {
       connected: false,
       icon: "👥",
       color: "#1877f2",
+      description: "Share content to Facebook pages or profile"
     },
   ]);
   
@@ -101,7 +104,7 @@ const PlatformConnections = () => {
     } else {
       setIsInitialLoading(false);
     }
-  }, [user, platforms]);
+  }, [user]);  // Removed platforms from dependency array to prevent potential infinite loops
 
   const handleConnect = async (platformId: string) => {
     try {
@@ -114,7 +117,11 @@ const PlatformConnections = () => {
 
       console.log(`Initiating connection to ${platformId}...`);
       
-      toast.info(`A new window will open for you to sign in with ${platformId}. Please ensure popup blockers are disabled.`);
+      if (platformId === 'google') {
+        toast.info(`YouTube/Google authorization will open in a new window. Please ensure popup blockers are disabled.`);
+      } else {
+        toast.info(`A new window will open for you to sign in with ${platformId}. Please ensure popup blockers are disabled.`);
+      }
       
       const { data, error } = await signInWithOAuth(platformId as 'google' | 'facebook');
       
@@ -130,7 +137,7 @@ const PlatformConnections = () => {
       
     } catch (error) {
       console.error(`Error connecting to ${platformId}:`, error);
-      toast.error(`Unable to connect to ${platformId}. Please check your browser settings and try again.`);
+      toast.error(`Unable to connect to ${platformId === 'google' ? 'YouTube' : platformId}. Please check your browser settings and try again.`);
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
     }
@@ -163,10 +170,11 @@ const PlatformConnections = () => {
         )
       );
       
-      toast.success(`Your ${platformId} account has been disconnected.`);
+      const platformName = platformId === 'google' ? 'YouTube' : platformId;
+      toast.success(`Your ${platformName} account has been disconnected.`);
     } catch (error) {
       console.error(`Error disconnecting from ${platformId}:`, error);
-      toast.error(`Unable to disconnect from ${platformId}. Please try again.`);
+      toast.error(`Unable to disconnect from ${platformId === 'google' ? 'YouTube' : platformId}. Please try again.`);
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
     }
@@ -197,7 +205,9 @@ const PlatformConnections = () => {
       
       <Alert className="mb-4 bg-blue-50 border-blue-200">
         <AlertDescription className="text-blue-800">
-          Connecting to platforms will open a new window. Please ensure popup blockers are disabled.
+          {platforms.some(p => p.connected) 
+            ? "Your accounts are connected. You can upload content to these platforms."
+            : "Connecting to platforms will open a new window. Please ensure popup blockers are disabled."}
         </AlertDescription>
       </Alert>
       
@@ -217,7 +227,7 @@ const PlatformConnections = () => {
               <div>
                 <h3 className="font-medium">{platform.name}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {platform.connected ? "Connected" : "Not connected"}
+                  {platform.connected ? "Connected" : platform.description}
                 </p>
               </div>
             </div>

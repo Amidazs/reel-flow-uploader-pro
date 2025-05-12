@@ -42,7 +42,7 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Sign in with OAuth provider - Updated to use dynamic redirect URL and better debugging
+  // Sign in with OAuth provider - Updated to fix 403 errors and improve YouTube scopes
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
       // Get the current window's origin for redirect
@@ -53,13 +53,22 @@ export const useAuth = () => {
       const timestamp = new Date().getTime();
       const uniqueRedirect = `${redirectTo}?cache=${timestamp}`;
       
+      // Configure specific scopes and options based on provider
+      const options = {
+        redirectTo: uniqueRedirect,
+        skipBrowserRedirect: false, // Ensure browser redirect happens
+      };
+      
+      // Add YouTube-specific scopes only for Google provider
+      if (provider === 'google') {
+        // Using more specific scopes for YouTube access
+        options['scopes'] = 'email profile https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload';
+        options['queryParams'] = { access_type: 'offline', prompt: 'consent' };
+      }
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: {
-          redirectTo: uniqueRedirect,
-          skipBrowserRedirect: false, // Ensure browser redirect happens
-          scopes: provider === 'google' ? 'https://www.googleapis.com/auth/youtube' : '', // Add required scopes for YouTube
-        },
+        options,
       });
       
       if (error) {

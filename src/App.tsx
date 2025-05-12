@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -53,7 +54,9 @@ const OAuthCallbackHandler = () => {
           accessToken: accessToken ? "present" : "missing",
           refreshToken: refreshToken ? "present" : "missing", 
           provider,
-          expiresIn
+          expiresIn,
+          hash: location.hash,
+          url: window.location.href
         });
         
         if (accessToken && provider && user?.id) {
@@ -83,15 +86,23 @@ const OAuthCallbackHandler = () => {
           // Show success message
           toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} connected successfully!`);
           
+          // For Google/YouTube, show a special message
+          if (provider === 'google') {
+            toast.success("YouTube access granted! You can now upload videos.");
+          }
+          
           // Reload the page to display updated connections
           // We use replace instead of navigate to clean the URL
-          window.location.replace('/settings');
+          setTimeout(() => {
+            window.location.replace('/settings');
+          }, 500);
         } else if (location.hash && location.hash.includes('access_token')) {
           // We have a hash with access_token but something is missing
           console.error("OAuth callback error: Missing required parameters", { 
             accessToken: !!accessToken, 
             provider, 
-            userId: user?.id 
+            userId: user?.id,
+            hash: location.hash
           });
           
           if (!user?.id) {
