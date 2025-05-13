@@ -37,19 +37,21 @@ export default function useVideoUpload() {
       setError(null);
       setVideoUrl(null);
 
-      // Check if we have storage buckets available
-      const { data: buckets, error: bucketError } = await supabase
-        .storage
-        .listBuckets();
-      
-      if (bucketError) {
-        throw new Error('Storage buckets not available. Videos cannot be uploaded at this time.');
-      }
-
-      const hasBucket = buckets?.some(bucket => bucket.name === 'videos');
-      if (!hasBucket) {
-        throw new Error('Videos storage bucket not found. Please contact support.');
-      }
+      // Set upload progress simulation
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          const newProgress = prev + 5;
+          if (newProgress >= 90) {
+            clearInterval(progressInterval);
+            return 90; // Hold at 90% until processing is complete
+          }
+          return newProgress;
+        });
+        
+        if (options?.onProgress) {
+          options.onProgress(progress);
+        }
+      }, 200);
 
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
@@ -57,9 +59,6 @@ export default function useVideoUpload() {
       const filePath = `${options?.userId || 'anonymous'}/${fileName}`;
 
       console.log(`Uploading file to path: ${filePath}`);
-
-      // Create an AbortController to track progress manually
-      const abortController = new AbortController();
       
       // Upload file to Supabase Storage
       const { data, error: uploadError } = await supabase.storage
@@ -69,15 +68,13 @@ export default function useVideoUpload() {
           upsert: false,
         });
 
-      // Handle progress tracking separately using events if needed
-      // This is a workaround since onUploadProgress is not available in FileOptions
-      // We can use the progress state from the useState hook
-      
       if (uploadError) {
+        clearInterval(progressInterval);
         throw uploadError;
       }
 
       console.log('Upload successful:', data);
+      setProgress(95);
 
       // Get public URL for the uploaded file
       const { data: publicUrlData } = supabase.storage
@@ -86,6 +83,7 @@ export default function useVideoUpload() {
 
       const videoUrl = publicUrlData?.publicUrl || '';
       setVideoUrl(videoUrl);
+      setProgress(100);
 
       // If user is logged in and we have platform info, save to database
       if (options?.userId) {
@@ -107,6 +105,7 @@ export default function useVideoUpload() {
         }
       }
 
+      clearInterval(progressInterval);
       toast.success('Video uploaded successfully!');
       
       if (options?.onComplete) {
@@ -114,7 +113,7 @@ export default function useVideoUpload() {
       }
 
       return { url: videoUrl, error: null };
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error uploading video:', err);
       setError(err);
       toast.error(`Upload failed: ${err.message || 'Unknown error'}`);

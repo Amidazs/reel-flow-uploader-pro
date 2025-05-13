@@ -43,35 +43,29 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Sign in with OAuth provider - Updated to fix 403 errors and improve scopes
+  // Sign in with OAuth provider - Updated to fix redirects and OAuth flow
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
       // Get the current window's origin for redirect
-      const redirectTo = window.location.origin;
+      const redirectTo = `${window.location.origin}/uploads`;
       console.log(`Initiating ${provider} OAuth flow with redirect URL: ${redirectTo}`);
-      
-      // Add timestamp to avoid caching issues with redirects
-      const timestamp = new Date().getTime();
-      const uniqueRedirect = `${redirectTo}?cache=${timestamp}`;
       
       // Configure specific scopes and options based on provider
       const options: any = {
-        redirectTo: uniqueRedirect,
+        redirectTo,
         skipBrowserRedirect: false,
       };
       
       // Add provider-specific configurations
       if (provider === 'google') {
-        // Updated Google scopes to basic profile and limited YouTube access
-        // Using only the minimum required scopes to avoid verification requirements
-        options.scopes = 'email profile';
+        // Updated Google scopes to include YouTube and basic profile
+        options.scopes = 'email profile https://www.googleapis.com/auth/youtube';
         options.queryParams = { 
           access_type: 'offline',
           prompt: 'consent',
           include_granted_scopes: 'true'
         };
       } else if (provider === 'facebook') {
-        // Updated Facebook scopes to match what's allowed
         options.scopes = 'public_profile,email';
       }
       
@@ -82,6 +76,7 @@ export const useAuth = () => {
       
       if (error) {
         console.error(`OAuth error:`, error);
+        toast.error(`Failed to connect to ${provider}: ${error.message}`);
         throw error;
       }
       
@@ -89,6 +84,7 @@ export const useAuth = () => {
       return { data, error: null };
     } catch (error) {
       console.error(`Error signing in with ${provider}:`, error);
+      toast.error(`Failed to connect to ${provider}: ${error.message}`);
       return { data: null, error };
     }
   };
