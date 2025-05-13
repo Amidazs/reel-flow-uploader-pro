@@ -67,7 +67,6 @@ export default function useVideoUpload() {
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
-          // Using a custom progress handler separately since onUploadProgress is not in FileOptions
         });
 
       // Handle progress tracking separately using events if needed
