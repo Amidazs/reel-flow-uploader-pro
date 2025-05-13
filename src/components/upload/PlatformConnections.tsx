@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, AlertCircle, Lock, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,54 +59,62 @@ const PlatformConnections = () => {
   
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Fetch existing connections from Supabase on component mount
-  useEffect(() => {
-    const fetchConnections = async () => {
-      try {
-        if (!user?.id) {
-          setIsInitialLoading(false);
-          return;
-        }
-        
-        console.log("Fetching platform connections for user:", user.id);
-        
-        const { data, error } = await supabase
-          .from('platform_connections')
-          .select('*')
-          .eq('user_id', user.id);
-        
-        if (error) {
-          console.error("Error fetching connections:", error);
-          throw error;
-        }
-        
-        console.log("Fetched platform connections:", data);
-        
-        if (data && data.length > 0) {
-          // Update platforms with connection status from database
-          const updatedPlatforms = platforms.map(platform => {
-            const connection = data.find(conn => conn.platform_id === platform.id);
-            return {
-              ...platform,
-              connected: !!connection
-            };
-          });
-          setPlatforms(updatedPlatforms);
-          console.log("Updated platforms with connection status:", updatedPlatforms);
-        }
-
+  // Function to fetch connections - extracted for reusability
+  const fetchConnections = useCallback(async () => {
+    try {
+      if (!user?.id) {
         setIsInitialLoading(false);
-      } catch (error) {
-        console.error('Error fetching platform connections:', error);
-        toast.error("Failed to load connections. Please refresh the page to try again.");
-        setIsInitialLoading(false);
+        return;
       }
-    };
-    
-    // Add force refresh support - fetch again when the component is mounted or window is focused
-    fetchConnections();
+      
+      console.log("Fetching platform connections for user:", user.id);
+      
+      const { data, error } = await supabase
+        .from('platform_connections')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error("Error fetching connections:", error);
+        throw error;
+      }
+      
+      console.log("Fetched platform connections:", data);
+      
+      if (data && data.length > 0) {
+        // Update platforms with connection status from database
+        const updatedPlatforms = platforms.map(platform => {
+          const connection = data.find(conn => conn.platform_id === platform.id);
+          return {
+            ...platform,
+            connected: !!connection
+          };
+        });
+        setPlatforms(updatedPlatforms);
+        console.log("Updated platforms with connection status:", updatedPlatforms);
+      } else {
+        // Reset connections if none found
+        const resetPlatforms = platforms.map(platform => ({
+          ...platform,
+          connected: false
+        }));
+        setPlatforms(resetPlatforms);
+      }
 
+      setIsInitialLoading(false);
+    } catch (error) {
+      console.error('Error fetching platform connections:', error);
+      toast.error("Failed to load connections. Please refresh the page to try again.");
+      setIsInitialLoading(false);
+    }
+  }, [user, platforms]);
+  
+  // Fetch existing connections from Supabase on component mount and when refreshTrigger changes
+  useEffect(() => {
+    fetchConnections();
+    
     // Set up event listener for when window regains focus
     const handleFocus = () => {
       console.log("Window focused, refreshing connections...");
@@ -115,10 +123,19 @@ const PlatformConnections = () => {
 
     window.addEventListener('focus', handleFocus);
 
+    // Force refresh every 10 seconds while on settings page to catch any updates
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible' && window.location.pathname === '/settings') {
+        console.log("Periodic refresh of connections");
+        fetchConnections();
+      }
+    }, 10000);
+
     return () => {
       window.removeEventListener('focus', handleFocus);
+      clearInterval(intervalId);
     };
-  }, [user, platforms]);  
+  }, [fetchConnections, refreshTrigger]);  
 
   const handleConnect = async (platformId: string) => {
     try {
@@ -140,6 +157,9 @@ const PlatformConnections = () => {
         toast.info("Note: This is a development app with limited access. You'll need to click 'Continue' on the unverified app screen.");
       }
       
+      // Reset refresh trigger to force new fetch after OAuth completes
+      setRefreshTrigger(prev => prev + 1);
+      
       const { data, error } = await signInWithOAuth(platformId as 'google' | 'facebook');
       
       if (error) {
@@ -148,9 +168,6 @@ const PlatformConnections = () => {
       }
       
       console.log(`OAuth initiated successfully`, data);
-      
-      // The actual connection will be updated after the OAuth redirect and callback
-      // via the OAuthCallbackHandler in App.tsx
       
     } catch (error) {
       console.error(`Error connecting to ${platformId}:`, error);
@@ -187,6 +204,9 @@ const PlatformConnections = () => {
         )
       );
       
+      // Force refresh
+      setRefreshTrigger(prev => prev + 1);
+      
       const platformName = platformId === 'google' ? 'YouTube' : platformId;
       toast.success(`Your ${platformName} account has been disconnected.`);
     } catch (error) {
@@ -195,6 +215,13 @@ const PlatformConnections = () => {
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
     }
+  };
+
+  // Manually trigger refresh
+  const handleManualRefresh = () => {
+    setIsInitialLoading(true);
+    setRefreshTrigger(prev => prev + 1);
+    toast.info("Refreshing connections...");
   };
 
   if (isInitialLoading) {
@@ -210,7 +237,18 @@ const PlatformConnections = () => {
 
   return (
     <Card className="p-6">
-      <h2 className="text-xl font-semibold mb-4">Platform Connections</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Platform Connections</h2>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleManualRefresh} 
+          className="text-xs flex items-center gap-1"
+        >
+          <Loader2 className={`h-3 w-3 ${isInitialLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
       
       {!user && (
         <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
@@ -318,7 +356,23 @@ const PlatformConnections = () => {
           </div>
         ))}
 
-        <div className="text-center pt-2">
+        {platform => platform.id === 'facebook' && (
+          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              <strong>Facebook development note:</strong> To test Facebook connection, you need to add your account as a test user in Facebook Developer settings.
+            </p>
+            <a 
+              href="https://developers.facebook.com/tools/explorer/" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Learn more about Facebook test accounts
+            </a>
+          </div>
+        )}
+
+        <div className="text-center pt-4">
           <p className="text-sm text-muted-foreground">
             Connect your accounts to enable automatic uploads
           </p>

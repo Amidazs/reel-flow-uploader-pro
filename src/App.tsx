@@ -2,7 +2,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button"; // Added Button import
+import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -39,10 +39,13 @@ const OAuthCallbackHandler = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading } = useAuthContext();
+  const [processingOAuth, setProcessingOAuth] = useState(false);
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
+        setProcessingOAuth(true);
+        
         // Extract hash parameters (used by Supabase OAuth)
         const hashParams = new URLSearchParams(location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
@@ -65,6 +68,7 @@ const OAuthCallbackHandler = () => {
             console.log("No authenticated user found, but received OAuth tokens");
             toast.error("Authentication required. Please log in and try again.");
             navigate("/");
+            setProcessingOAuth(false);
             return;
           }
 
@@ -75,36 +79,47 @@ const OAuthCallbackHandler = () => {
             ? new Date(Date.now() + parseInt(expiresIn) * 1000).toISOString() 
             : null;
 
-          // Store the tokens in Supabase
-          const { error } = await createOrUpdatePlatformConnection(
-            user.id,
-            provider, // 'google' or 'facebook'
-            accessToken,
-            refreshToken || null,
-            expiresAt
-          );
+          // Store the tokens in Supabase with retry logic
+          let retryCount = 0;
+          let success = false;
+          
+          while (retryCount < 3 && !success) {
+            const { data, error } = await createOrUpdatePlatformConnection(
+              user.id,
+              provider,
+              accessToken,
+              refreshToken || null,
+              expiresAt
+            );
 
-          if (error) {
-            console.error("Error creating platform connection:", error);
-            throw error;
+            if (error) {
+              console.error(`Attempt ${retryCount + 1}: Error creating platform connection:`, error);
+              retryCount++;
+              // Wait before retrying
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              success = true;
+              console.log(`${provider} connection successful!`, data);
+              
+              // Show success message
+              const platformName = provider === 'google' ? 'YouTube' : provider.charAt(0).toUpperCase() + provider.slice(1);
+              toast.success(`${platformName} connected successfully!`);
+              
+              // For Google/YouTube, show a special message
+              if (provider === 'google') {
+                toast.success("YouTube access granted! You can now upload videos.");
+              }
+              
+              // Navigate to settings page and invalidate queries to refresh data
+              navigate('/settings');
+              break;
+            }
           }
-
-          console.log(`${provider} connection successful!`);
           
-          // Show success message
-          toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} connected successfully!`);
-          
-          // For Google/YouTube, show a special message
-          if (provider === 'google') {
-            toast.success("YouTube access granted! You can now upload videos.");
+          if (!success) {
+            toast.error(`Failed to connect ${provider} after multiple attempts. Please try again.`);
           }
           
-          // Reload the page to display updated connections
-          // Use queryClient to invalidate relevant queries
-          setTimeout(() => {
-            // Redirect to settings page and force a refresh to show updated connections
-            window.location.href = '/settings';
-          }, 500);
         } else if (location.hash && location.hash.includes('access_token')) {
           // We have a hash with access_token but something is missing
           console.error("OAuth callback error: Missing required parameters", { 
@@ -126,21 +141,25 @@ const OAuthCallbackHandler = () => {
         console.error('Error processing OAuth callback:', error);
         toast.error('Failed to connect account. Please try again.');
         navigate('/settings');
+      } finally {
+        setProcessingOAuth(false);
       }
     };
 
     // Only process OAuth callback if we have a hash and not loading
-    if (location.hash && location.hash.includes('access_token') && !loading) {
+    if (location.hash && location.hash.includes('access_token') && !loading && !processingOAuth) {
       console.log("OAuth callback hash detected, processing...");
       handleOAuthCallback();
     }
-  }, [location, navigate, user, loading]); // Added loading dependency
+  }, [location, navigate, user, loading, processingOAuth]); 
 
   // Show a loading state while processing the callback
-  if (location.hash && location.hash.includes('access_token') && loading) {
+  if ((location.hash && location.hash.includes('access_token') && (loading || processingOAuth))) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Processing your login... Please wait.</p>
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-autoreel-primary mb-4"></div>
+        <p className="text-lg font-medium">Processing connection... Please wait.</p>
+        <p className="text-sm text-muted-foreground mt-2">This will only take a moment.</p>
       </div>
     );
   }
