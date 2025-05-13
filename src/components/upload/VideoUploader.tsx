@@ -21,7 +21,11 @@ type VideoMetadata = {
   visibility: "public" | "private" | "unlisted";
 };
 
-const VideoUploader = () => {
+interface VideoUploaderProps {
+  onUploadComplete?: () => void;
+}
+
+const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
   const { user } = useAuthContext();
   const { uploadVideo, isUploading, progress } = useVideoUpload();
   
@@ -50,6 +54,7 @@ const VideoUploader = () => {
         if (data) {
           const platforms = data.map(conn => conn.platform_id);
           setConnectedPlatforms(platforms);
+          console.log("Connected platforms:", platforms);
         }
       } catch (error) {
         console.error("Error fetching platform connections:", error);
@@ -73,14 +78,14 @@ const VideoUploader = () => {
   };
 
   const handleUpload = async () => {
-    if (!videoFile || !user) return;
+    if (!videoFile) return;
     
     setUploadStep("processing");
     
     try {
       // First upload to our storage
       const { url, error } = await uploadVideo(videoFile, {
-        userId: user.id,
+        userId: user?.id,
         platform: "local", 
         metadata: {
           title: metadata.youtube.title || videoFile.name,
@@ -104,6 +109,18 @@ const VideoUploader = () => {
     }
   };
 
+  const handleUploadAnother = () => {
+    setVideoFile(null);
+    setUploadStep("select");
+  };
+
+  const handleCompleteProcess = () => {
+    // Call the onUploadComplete callback if provided
+    if (onUploadComplete) {
+      onUploadComplete();
+    }
+  };
+
   const renderStepContent = () => {
     switch (uploadStep) {
       case "select":
@@ -118,6 +135,7 @@ const VideoUploader = () => {
           <div className="space-y-6">
             <VideoUploadCard 
               onVideoSelected={handleVideoSelected} 
+              selectedFile={videoFile}
             />
             
             <MetadataForm onMetadataChange={handleMetadataChange} />
@@ -230,12 +248,11 @@ const VideoUploader = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-                <Button onClick={() => setUploadStep("select")}>
+                <Button onClick={handleUploadAnother}>
                   Upload Another Video
                 </Button>
-                <Button variant="outline">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share
+                <Button variant="outline" onClick={handleCompleteProcess}>
+                  View Upload History
                 </Button>
               </div>
             </div>

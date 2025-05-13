@@ -46,14 +46,19 @@ export const useAuth = () => {
   // Sign in with OAuth provider - Updated to fix redirects and OAuth flow
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
-      // Get the current window's origin for redirect
-      const redirectTo = `${window.location.origin}/uploads`;
+      // Get the current page URL for the redirect
+      const currentPath = window.location.pathname;
+      const redirectTo = `${window.location.origin}/settings`;
+      
       console.log(`Initiating ${provider} OAuth flow with redirect URL: ${redirectTo}`);
+      console.log(`Current path: ${currentPath}`);
       
       // Configure specific scopes and options based on provider
       const options: any = {
         redirectTo,
-        skipBrowserRedirect: false,
+        queryParams: {
+          redirect_url: redirectTo, // Additional parameter to ensure proper redirection
+        },
       };
       
       // Add provider-specific configurations
@@ -61,9 +66,10 @@ export const useAuth = () => {
         // Updated Google scopes to include YouTube and basic profile
         options.scopes = 'email profile https://www.googleapis.com/auth/youtube';
         options.queryParams = { 
+          ...options.queryParams,
           access_type: 'offline',
           prompt: 'consent',
-          include_granted_scopes: 'true'
+          include_granted_scopes: 'true',
         };
       } else if (provider === 'facebook') {
         options.scopes = 'public_profile,email';

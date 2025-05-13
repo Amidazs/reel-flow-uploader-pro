@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -36,27 +36,28 @@ export default function useVideoUpload() {
       setProgress(0);
       setError(null);
       setVideoUrl(null);
-
-      // Set upload progress simulation
+      
+      // Set regular progress updates using an interval
+      let progressCount = 0;
       const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          const newProgress = prev + 5;
-          if (newProgress >= 90) {
-            clearInterval(progressInterval);
-            return 90; // Hold at 90% until processing is complete
-          }
-          return newProgress;
-        });
+        progressCount += 5;
+        if (progressCount >= 90) {
+          clearInterval(progressInterval);
+          setProgress(90);
+        } else {
+          setProgress(progressCount);
+        }
         
         if (options?.onProgress) {
-          options.onProgress(progress);
+          options.onProgress(progressCount);
         }
-      }, 200);
+      }, 300);
 
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${uuidv4()}.${fileExt}`;
-      const filePath = `${options?.userId || 'anonymous'}/${fileName}`;
+      const userId = options?.userId || 'anonymous';
+      const filePath = `${userId}/${fileName}`;
 
       console.log(`Uploading file to path: ${filePath}`);
       
@@ -68,8 +69,10 @@ export default function useVideoUpload() {
           upsert: false,
         });
 
+      // Clear progress interval regardless of outcome
+      clearInterval(progressInterval);
+
       if (uploadError) {
-        clearInterval(progressInterval);
         throw uploadError;
       }
 
@@ -83,29 +86,28 @@ export default function useVideoUpload() {
 
       const videoUrl = publicUrlData?.publicUrl || '';
       setVideoUrl(videoUrl);
-      setProgress(100);
+      
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('video_uploads')
+        .insert({
+          user_id: options?.userId || null,
+          file_name: fileName,
+          platform_id: options?.platform || 'local',
+          title: options?.metadata?.title || file.name,
+          description: options?.metadata?.description || '',
+          tags: options?.metadata?.tags || [],
+          video_url: videoUrl,
+          uploaded_at: new Date().toISOString(),
+        });
 
-      // If user is logged in and we have platform info, save to database
-      if (options?.userId) {
-        const { error: dbError } = await supabase
-          .from('video_uploads')
-          .insert({
-            user_id: options.userId,
-            file_name: fileName,
-            platform_id: options.platform || 'local',
-            title: options.metadata?.title || file.name,
-            description: options.metadata?.description || '',
-            tags: options.metadata?.tags || [],
-            video_url: videoUrl,
-          });
-
-        if (dbError) {
-          console.error('Error saving video metadata to database:', dbError);
-          toast.error('Video uploaded but metadata could not be saved.');
-        }
+      if (dbError) {
+        console.error('Error saving video metadata to database:', dbError);
+        // We still continue since the file upload was successful
+        toast.error('Video uploaded but metadata could not be saved.');
       }
 
-      clearInterval(progressInterval);
+      setProgress(100);
       toast.success('Video uploaded successfully!');
       
       if (options?.onComplete) {

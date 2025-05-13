@@ -1,14 +1,36 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VideoUploader from "@/components/upload/VideoUploader";
 import { useAuthContext } from "@/App";
+import { useVideoHistory } from "@/hooks/useVideoHistory";
+import { VideoHistoryList } from "@/components/upload/VideoHistoryList";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 const UploadsPage = () => {
   const { user } = useAuthContext();
   const [activeTab, setActiveTab] = useState("upload");
+  const { uploads, loading, error, refetch } = useVideoHistory();
+  
+  // Effect to handle tab changes and refresh on upload tab change
+  useEffect(() => {
+    if (activeTab === "history") {
+      refetch();
+    }
+  }, [activeTab, refetch]);
+  
+  const handleDeleteVideo = (deletedId: string) => {
+    // No need to manually update state, we'll just refetch
+    refetch();
+  };
+
+  const handleUploadComplete = () => {
+    // Switch to history tab after upload completes
+    setActiveTab("history");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,42 +55,36 @@ const UploadsPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <VideoUploader />
+                <VideoUploader onUploadComplete={handleUploadComplete} />
               </CardContent>
             </Card>
           </TabsContent>
           
           <TabsContent value="history">
             <Card>
-              <CardHeader>
-                <CardTitle>Upload History</CardTitle>
-                <CardDescription>
-                  View and manage your previously uploaded content
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Upload History</CardTitle>
+                  <CardDescription>
+                    View and manage your previously uploaded content
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={refetch} 
+                  className="flex items-center gap-1"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Refresh
+                </Button>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="rounded-full bg-muted p-6 mb-4">
-                    <svg
-                      className="h-10 w-10 text-muted-foreground"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">No uploads yet</h3>
-                  <p className="text-muted-foreground max-w-md">
-                    Your uploaded videos will appear here. Start uploading content to build your history.
-                  </p>
-                </div>
+                <VideoHistoryList 
+                  uploads={uploads}
+                  loading={loading}
+                  onDeleteVideo={handleDeleteVideo}
+                />
               </CardContent>
             </Card>
           </TabsContent>
