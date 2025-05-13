@@ -235,6 +235,23 @@ const PlatformConnections = () => {
     );
   }
 
+  // Render Facebook development note independently, not as a platforms.map item
+  const facebookDevNote = (
+    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+      <p className="text-sm text-blue-800">
+        <strong>Facebook development note:</strong> To test Facebook connection, you need to add your account as a test user in Facebook Developer settings.
+      </p>
+      <a 
+        href="https://developers.facebook.com/tools/explorer/" 
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs text-blue-600 hover:underline"
+      >
+        Learn more about Facebook test accounts
+      </a>
+    </div>
+  );
+
   return (
     <Card className="p-6">
       <div className="flex justify-between items-center mb-4">
@@ -356,21 +373,8 @@ const PlatformConnections = () => {
           </div>
         ))}
 
-        {platform => platform.id === 'facebook' && (
-          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
-              <strong>Facebook development note:</strong> To test Facebook connection, you need to add your account as a test user in Facebook Developer settings.
-            </p>
-            <a 
-              href="https://developers.facebook.com/tools/explorer/" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Learn more about Facebook test accounts
-            </a>
-          </div>
-        )}
+        {/* Render Facebook dev note directly, not as a map function */}
+        {facebookDevNote}
 
         <div className="text-center pt-4">
           <p className="text-sm text-muted-foreground">
