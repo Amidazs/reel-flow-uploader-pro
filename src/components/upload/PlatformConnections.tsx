@@ -15,9 +15,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
-import { toast } from "sonner";
-import { supabase, useAuth, deletePlatformConnection } from "@/lib/supabase";
+import { toast } from "@/components/ui/use-toast";
+import { supabase, deletePlatformConnection } from "@/lib/supabase";
 import { useAuthContext } from "@/App";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -32,7 +31,6 @@ type Platform = {
 };
 
 const PlatformConnections = () => {
-  const { toast: shadcnToast } = useToast();
   const { user, signInWithOAuth } = useAuthContext();
   const queryClient = useQueryClient();
   
@@ -106,26 +104,37 @@ const PlatformConnections = () => {
       setIsInitialLoading(false);
     } catch (error) {
       console.error('Error fetching platform connections:', error);
-      toast.error("Failed to load connections. Please refresh the page to try again.");
+      toast({
+        title: "Failed to load connections", 
+        description: "Please refresh the page to try again."
+      });
       setIsInitialLoading(false);
     }
   }, [user, platforms]);
   
   // Fetch existing connections from Supabase on component mount and when refreshTrigger changes
   useEffect(() => {
-    fetchConnections();
+    if (user) {
+      fetchConnections();
+    } else {
+      setIsInitialLoading(false);
+    }
     
     // Set up event listener for when window regains focus
     const handleFocus = () => {
       console.log("Window focused, refreshing connections...");
-      fetchConnections();
+      if (user) {
+        fetchConnections();
+      }
     };
 
     window.addEventListener('focus', handleFocus);
 
     // Force refresh every 10 seconds while on settings page to catch any updates
     const intervalId = setInterval(() => {
-      if (document.visibilityState === 'visible' && window.location.pathname === '/settings') {
+      if (document.visibilityState === 'visible' && 
+          window.location.pathname === '/settings' && 
+          user) {
         console.log("Periodic refresh of connections");
         fetchConnections();
       }
@@ -135,14 +144,18 @@ const PlatformConnections = () => {
       window.removeEventListener('focus', handleFocus);
       clearInterval(intervalId);
     };
-  }, [fetchConnections, refreshTrigger]);  
+  }, [fetchConnections, refreshTrigger, user]);  
 
   const handleConnect = async (platformId: string) => {
     try {
       setIsLoading(prev => ({ ...prev, [platformId]: true }));
       
       if (!user) {
-        toast.error("Authentication required. Please log in to connect your accounts.");
+        toast({
+          title: "Authentication required", 
+          description: "Please log in to connect your accounts.", 
+          variant: "destructive"
+        });
         return;
       }
 
@@ -151,10 +164,16 @@ const PlatformConnections = () => {
       // Show platform-specific messages
       const platformName = platformId === 'google' ? 'YouTube' : platformId.charAt(0).toUpperCase() + platformId.slice(1);
       
-      toast.info(`${platformName} authorization will open in a new window. Please ensure popup blockers are disabled.`);
+      toast({
+        title: "Connecting to " + platformName,
+        description: `${platformName} authorization will open in a new window. Please ensure popup blockers are disabled.`
+      });
       
       if (platformId === 'google') {
-        toast.info("Note: This is a development app with limited access. You'll need to click 'Continue' on the unverified app screen.");
+        toast({
+          title: "Development App Notice",
+          description: "This is a development app with limited access. You'll need to click 'Continue' on the unverified app screen."
+        });
       }
       
       // Reset refresh trigger to force new fetch after OAuth completes
@@ -171,7 +190,10 @@ const PlatformConnections = () => {
       
     } catch (error) {
       console.error(`Error connecting to ${platformId}:`, error);
-      toast.error(`Unable to connect to ${platformId === 'google' ? 'YouTube' : platformId}. Please check your browser settings and try again.`);
+      toast({
+        title: `Connection Failed`, 
+        description: `Unable to connect to ${platformId === 'google' ? 'YouTube' : platformId}. Please check your browser settings and try again.`
+      });
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
     }
@@ -182,7 +204,10 @@ const PlatformConnections = () => {
       setIsLoading(prev => ({ ...prev, [platformId]: true }));
       
       if (!user?.id) {
-        toast.error("Authentication required. Please log in to manage your connections.");
+        toast({
+          title: "Authentication required", 
+          description: "Please log in to manage your connections."
+        });
         return;
       }
       
@@ -208,10 +233,17 @@ const PlatformConnections = () => {
       setRefreshTrigger(prev => prev + 1);
       
       const platformName = platformId === 'google' ? 'YouTube' : platformId;
-      toast.success(`Your ${platformName} account has been disconnected.`);
+      toast({
+        title: "Disconnected",
+        description: `Your ${platformName} account has been disconnected.`
+      });
     } catch (error) {
       console.error(`Error disconnecting from ${platformId}:`, error);
-      toast.error(`Unable to disconnect from ${platformId === 'google' ? 'YouTube' : platformId}. Please try again.`);
+      toast({
+        title: "Disconnection failed",
+        description: `Unable to disconnect from ${platformId === 'google' ? 'YouTube' : platformId}. Please try again.`,
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
     }
@@ -221,7 +253,10 @@ const PlatformConnections = () => {
   const handleManualRefresh = () => {
     setIsInitialLoading(true);
     setRefreshTrigger(prev => prev + 1);
-    toast.info("Refreshing connections...");
+    toast({
+      title: "Refreshing connections...",
+      description: "Checking for connected platforms."
+    });
   };
 
   if (isInitialLoading) {

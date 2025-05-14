@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/App';
 import { toast } from '@/components/ui/use-toast';
@@ -12,15 +13,16 @@ export type VideoUpload = {
   file_name: string;
   uploaded_at: string;
   tags: string[] | null;
+  scheduled_for?: string | null;
 };
 
 export const useVideoHistory = () => {
   const [uploads, setUploads] = useState<VideoUpload[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Initialize as false instead of true
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuthContext();
 
-  const fetchUploads = async () => {
+  const fetchUploads = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
@@ -35,6 +37,7 @@ export const useVideoHistory = () => {
         .from('video_uploads')
         .select('*')
         .eq('user_id', user.id)
+        .is('scheduled_for', null) // Only fetch non-scheduled uploads
         .order('uploaded_at', { ascending: false });
       
       if (error) {
@@ -52,11 +55,13 @@ export const useVideoHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    fetchUploads();
-  }, [user]);
+    if (user) {
+      fetchUploads();
+    }
+  }, [user, fetchUploads]);
 
   return {
     uploads,

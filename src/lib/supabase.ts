@@ -1,3 +1,4 @@
+
 import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 import { supabase as integratedSupabase } from '@/integrations/supabase/client';
@@ -76,7 +77,8 @@ export const useAuth = () => {
       
       if (error) {
         console.error(`OAuth error:`, error);
-        toast(`Failed to connect to ${provider}`, {
+        toast({
+          title: `Failed to connect to ${provider}`,
           description: error.message
         });
         throw error;
@@ -86,8 +88,9 @@ export const useAuth = () => {
       return { data, error: null };
     } catch (error: any) {
       console.error(`Error signing in with ${provider}:`, error);
-      toast(`Failed to connect to ${provider}`, {
-          description: error.message
+      toast({
+        title: `Failed to connect to ${provider}`,
+        description: error.message
       });
       return { data: null, error };
     }
@@ -183,12 +186,18 @@ export const createOrUpdatePlatformConnection = async (
     console.log(`Successfully created/updated ${platformId} connection:`, result.data);
 
     // Show success toast
-    toast(`${platformId === 'google' ? 'YouTube' : platformId} connection saved successfully!`);
+    toast({
+      title: `${platformId === 'google' ? 'YouTube' : platformId} connection saved`,
+      description: "Connection successfully established"
+    });
     
     return { data: result.data, error: null };
   } catch (error) {
     console.error(`Error creating/updating ${platformId} connection:`, error);
-    toast(`Failed to save ${platformId} connection. Please try again.`);
+    toast({
+      title: `Failed to save ${platformId} connection`,
+      description: "Please try again."
+    });
     return { data: null, error };
   }
 };

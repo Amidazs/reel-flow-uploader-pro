@@ -3,13 +3,26 @@ import { useState, useEffect } from "react";
 import { useAuthContext } from "@/App";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Share2 } from "lucide-react";
+import { ArrowRight, Share2, Calendar } from "lucide-react";
 import VideoUploadCard from "./VideoUploadCard";
 import MetadataForm from "./MetadataForm";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
+import { toast } from '@/components/ui/use-toast';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { format } from 'date-fns';
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 import useVideoUpload from "@/hooks/useVideoUpload";
 
 type Platform = "tiktok" | "youtube" | "facebook";
@@ -38,6 +51,12 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
     facebook: { title: "", description: "", tags: "", visibility: "public" },
   });
 
+  // Scheduling state
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+  const [scheduleTime, setScheduleTime] = useState("12:00");
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  
   // Fetch connected platforms when component mounts
   useEffect(() => {
     const fetchConnections = async () => {
@@ -77,12 +96,28 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
     }));
   };
 
+  const getScheduledDateTime = () => {
+    if (!scheduleDate || !scheduleTime) return null;
+    
+    // Parse the time string
+    const [hours, minutes] = scheduleTime.split(':').map(num => parseInt(num, 10));
+    
+    // Create a new date object with the scheduled date and time
+    const scheduledDateTime = new Date(scheduleDate);
+    scheduledDateTime.setHours(hours, minutes, 0, 0);
+    
+    return scheduledDateTime;
+  };
+
   const handleUpload = async () => {
     if (!videoFile) return;
     
     setUploadStep("processing");
     
     try {
+      // Calculate scheduled datetime if scheduling is enabled
+      const scheduledDateTime = scheduleMode ? getScheduledDateTime() : null;
+      
       // First upload to our storage
       const { url, error } = await uploadVideo(videoFile, {
         userId: user?.id,
@@ -91,6 +126,7 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
           title: metadata.youtube.title || videoFile.name,
           description: metadata.youtube.description,
           tags: metadata.youtube.tags.split(",").map(tag => tag.trim()),
+          scheduledFor: scheduledDateTime ? scheduledDateTime.toISOString() : null
         }
       });
       
@@ -100,11 +136,27 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
       // This would be implemented with edge functions in production
       
       setUploadStep("complete");
-      toast.success("Video processed successfully!");
+      
+      // Show appropriate toast message
+      if (scheduledDateTime) {
+        toast({
+          title: "Upload scheduled",
+          description: `Your video will be published ${format(scheduledDateTime, "PPP 'at' p")}`
+        });
+      } else {
+        toast({
+          title: "Video processed successfully!",
+          description: "Your content is ready to view"
+        });
+      }
       
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload video: " + error.message);
+      toast({
+        title: "Failed to upload video",
+        description: error.message,
+        variant: "destructive"
+      });
       setUploadStep("metadata"); // Return to metadata step on failure
     }
   };
@@ -112,6 +164,9 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
   const handleUploadAnother = () => {
     setVideoFile(null);
     setUploadStep("select");
+    setScheduleMode(false);
+    setScheduleDate(undefined);
+    setScheduleTime("12:00");
   };
 
   const handleCompleteProcess = () => {
@@ -141,7 +196,87 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
             <MetadataForm onMetadataChange={handleMetadataChange} />
             
             <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Platform Distribution</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Platform Distribution</h2>
+                
+                <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" onClick={() => setScheduleDialogOpen(true)}>
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {scheduleMode ? 
+                        (scheduleDate ? `Scheduled: ${format(scheduleDate, 'PP')}` : 'Schedule upload') : 
+                        'Schedule upload'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Schedule your upload</DialogTitle>
+                      <DialogDescription>
+                        Choose when you want your content to be published.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Date</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={`w-full justify-start text-left font-normal ${
+                                !scheduleDate && "text-muted-foreground"
+                              }`}
+                            >
+                              <Calendar className="mr-2 h-4 w-4" />
+                              {scheduleDate ? format(scheduleDate, "PPP") : "Select a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={scheduleDate}
+                              onSelect={setScheduleDate}
+                              initialFocus
+                              disabled={(date) => date < new Date()}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Time</label>
+                        <Input
+                          type="time"
+                          value={scheduleTime}
+                          onChange={(e) => setScheduleTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setScheduleMode(false);
+                          setScheduleDate(undefined);
+                          setScheduleDialogOpen(false);
+                        }}
+                      >
+                        Upload immediately
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          setScheduleMode(true);
+                          setScheduleDialogOpen(false);
+                        }}
+                        disabled={!scheduleDate}
+                      >
+                        Schedule upload
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
               
               <div className="space-y-4">
                 {connectedPlatforms.length > 0 ? (
@@ -198,7 +333,7 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
                   onClick={handleUpload}
                   disabled={!videoFile}
                 >
-                  Process and Upload
+                  {scheduleMode ? "Schedule for later" : "Process and Upload"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -242,9 +377,13 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold">Upload Complete!</h2>
+              <h2 className="text-2xl font-bold">
+                {scheduleMode ? 'Upload Scheduled!' : 'Upload Complete!'}
+              </h2>
               <p className="text-muted-foreground">
-                Your video has been successfully processed and stored.
+                {scheduleMode 
+                  ? `Your video has been scheduled for publication${scheduleDate ? ` on ${format(scheduleDate, "PPP 'at' p")}` : ''}.`
+                  : 'Your video has been successfully processed and stored.'}
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
@@ -252,7 +391,7 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
                   Upload Another Video
                 </Button>
                 <Button variant="outline" onClick={handleCompleteProcess}>
-                  View Upload History
+                  {scheduleMode ? 'View Scheduled Uploads' : 'View Upload History'}
                 </Button>
               </div>
             </div>

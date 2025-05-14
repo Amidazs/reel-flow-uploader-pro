@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
 type UploadOptions = {
@@ -11,6 +11,7 @@ type UploadOptions = {
     title?: string;
     description?: string;
     tags?: string[];
+    scheduledFor?: string | null;
   };
   onProgress?: (progress: number) => void;
   onComplete?: (url: string) => void;
@@ -99,16 +100,29 @@ export default function useVideoUpload() {
           tags: options?.metadata?.tags || [],
           video_url: videoUrl,
           uploaded_at: new Date().toISOString(),
+          scheduled_for: options?.metadata?.scheduledFor || null
         });
 
       if (dbError) {
         console.error('Error saving video metadata to database:', dbError);
         // We still continue since the file upload was successful
-        toast.error('Video uploaded but metadata could not be saved.');
+        toast({
+          title: "Warning",
+          description: "Video uploaded but metadata could not be saved.",
+          variant: "destructive"
+        });
       }
 
       setProgress(100);
-      toast.success('Video uploaded successfully!');
+      
+      const isScheduled = options?.metadata?.scheduledFor != null;
+      
+      if (!isScheduled) {
+        toast({
+          title: "Success",
+          description: "Video uploaded successfully!"
+        });
+      }
       
       if (options?.onComplete) {
         options.onComplete(videoUrl);
@@ -118,7 +132,11 @@ export default function useVideoUpload() {
     } catch (err: any) {
       console.error('Error uploading video:', err);
       setError(err);
-      toast.error(`Upload failed: ${err.message || 'Unknown error'}`);
+      toast({
+        title: "Upload failed",
+        description: err.message || 'Unknown error',
+        variant: "destructive"
+      });
       options?.onError?.(err);
       return { url: null, error: err };
     } finally {

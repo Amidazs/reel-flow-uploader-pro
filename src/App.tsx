@@ -12,9 +12,17 @@ import UploadsPage from "./pages/UploadsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { useAuth, supabase, createOrUpdatePlatformConnection } from "./lib/supabase";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 // Create auth context
 export const AuthContext = createContext(null);
@@ -66,7 +74,11 @@ const OAuthCallbackHandler = () => {
         if (accessToken && provider) {
           if (!user) {
             console.log("No authenticated user found, but received OAuth tokens");
-            toast.error("Authentication required. Please log in and try again.");
+            toast({
+              title: "Authentication required",
+              description: "Please log in and try again.",
+              variant: "destructive"
+            });
             navigate("/");
             setProcessingOAuth(false);
             return;
@@ -103,11 +115,17 @@ const OAuthCallbackHandler = () => {
               
               // Show success message
               const platformName = provider === 'google' ? 'YouTube' : provider.charAt(0).toUpperCase() + provider.slice(1);
-              toast.success(`${platformName} connected successfully!`);
+              toast({
+                title: `${platformName} connected successfully!`,
+                description: `You can now upload videos to ${platformName}`
+              });
               
               // For Google/YouTube, show a special message
               if (provider === 'google') {
-                toast.success("YouTube access granted! You can now upload videos.");
+                toast({
+                  title: "YouTube access granted!",
+                  description: "You can now upload videos to YouTube."
+                });
               }
               
               // Navigate to settings page and invalidate queries to refresh data
@@ -117,7 +135,11 @@ const OAuthCallbackHandler = () => {
           }
           
           if (!success) {
-            toast.error(`Failed to connect ${provider} after multiple attempts. Please try again.`);
+            toast({
+              title: "Connection failed",
+              description: `Failed to connect ${provider} after multiple attempts. Please try again.`,
+              variant: "destructive"
+            });
           }
           
         } else if (location.hash && location.hash.includes('access_token')) {
@@ -130,16 +152,25 @@ const OAuthCallbackHandler = () => {
           });
           
           if (!user) {
-            toast.error("Authentication required. Please log in and try again.");
+            toast({
+              title: "Authentication required",
+              description: "Please log in and try again."
+            });
             navigate("/");
           } else {
-            toast.error("Failed to connect account. Please try again.");
+            toast({
+              title: "Connection failed",
+              description: "Failed to connect account. Please try again."
+            });
             navigate("/settings");
           }
         }
       } catch (error) {
         console.error('Error processing OAuth callback:', error);
-        toast.error('Failed to connect account. Please try again.');
+        toast({
+          title: "Connection failed",
+          description: "Failed to connect account. Please try again."
+        });
         navigate('/settings');
       } finally {
         setProcessingOAuth(false);

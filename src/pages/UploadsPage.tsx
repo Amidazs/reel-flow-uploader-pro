@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VideoUploader from "@/components/upload/VideoUploader";
 import { useAuthContext } from "@/App";
 import { useVideoHistory } from "@/hooks/useVideoHistory";
+import { useScheduledUploads } from "@/hooks/useScheduledUploads";
 import { VideoHistoryList } from "@/components/upload/VideoHistoryList";
+import { ScheduledUploadsList } from "@/components/upload/ScheduledUploadsList";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -13,24 +16,33 @@ import { toast } from "@/components/ui/use-toast";
 const UploadsPage = () => {
   const { user } = useAuthContext();
   const [activeTab, setActiveTab] = useState("upload");
-  const { uploads, loading, error, refetch } = useVideoHistory();
+  const { uploads, loading: uploadsLoading, error, refetch } = useVideoHistory();
+  const { scheduledUploads, loading: scheduledLoading, refetch: refetchScheduled } = useScheduledUploads();
   
-  // Effect to handle tab changes and refresh on upload tab change
+  // Effect to handle tab changes and refresh on tab change
   useEffect(() => {
     if (activeTab === "history") {
       refetch();
+    } else if (activeTab === "scheduled") {
+      refetchScheduled();
     }
-  }, [activeTab, refetch]);
+  }, [activeTab, refetch, refetchScheduled]);
   
   const handleDeleteVideo = (deletedId: string) => {
     // No need to manually update state, we'll just refetch
     refetch();
   };
 
+  const handleDeleteScheduled = (deletedId: string) => {
+    // No need to manually update state, we'll just refetch
+    refetchScheduled();
+  };
+
   const handleUploadComplete = () => {
     // Switch to history tab after upload completes
     setActiveTab("history");
-    toast("Upload complete", {
+    toast({
+      title: "Upload complete",
       description: "Your video has been successfully uploaded"
     });
   };
@@ -85,7 +97,7 @@ const UploadsPage = () => {
               <CardContent>
                 <VideoHistoryList 
                   uploads={uploads}
-                  loading={loading}
+                  loading={uploadsLoading}
                   onDeleteVideo={handleDeleteVideo}
                 />
               </CardContent>
@@ -94,35 +106,29 @@ const UploadsPage = () => {
           
           <TabsContent value="scheduled">
             <Card>
-              <CardHeader>
-                <CardTitle>Scheduled Uploads</CardTitle>
-                <CardDescription>
-                  Manage your scheduled content uploads
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Scheduled Uploads</CardTitle>
+                  <CardDescription>
+                    Manage your scheduled content uploads
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={refetchScheduled} 
+                  className="flex items-center gap-1"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Refresh
+                </Button>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="rounded-full bg-muted p-6 mb-4">
-                    <svg
-                      className="h-10 w-10 text-muted-foreground"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">No scheduled uploads</h3>
-                  <p className="text-muted-foreground max-w-md">
-                    Schedule your content for future release across multiple platforms.
-                  </p>
-                </div>
+                <ScheduledUploadsList
+                  uploads={scheduledUploads}
+                  loading={scheduledLoading}
+                  onDeleteScheduled={handleDeleteScheduled}
+                />
               </CardContent>
             </Card>
           </TabsContent>
