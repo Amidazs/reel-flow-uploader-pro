@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/App';
@@ -48,8 +47,7 @@ export const useVideoHistory = () => {
       console.error('Error fetching video uploads:', err);
       setError(err);
       toast("Failed to load your upload history", {
-        description: err.message || "Please try again later",
-        variant: "destructive"
+        description: err.message || "Please try again later"
       });
     } finally {
       setLoading(false);

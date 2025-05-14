@@ -77,8 +77,7 @@ export const useAuth = () => {
       if (error) {
         console.error(`OAuth error:`, error);
         toast(`Failed to connect to ${provider}`, {
-          description: error.message,
-          variant: "destructive"
+          description: error.message
         });
         throw error;
       }
@@ -88,8 +87,7 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error(`Error signing in with ${provider}:`, error);
       toast(`Failed to connect to ${provider}`, {
-        description: error.message,
-        variant: "destructive"
+          description: error.message
       });
       return { data: null, error };
     }
@@ -190,9 +188,7 @@ export const createOrUpdatePlatformConnection = async (
     return { data: result.data, error: null };
   } catch (error) {
     console.error(`Error creating/updating ${platformId} connection:`, error);
-    toast(`Failed to save ${platformId} connection. Please try again.`, {
-      variant: "destructive"
-    });
+    toast(`Failed to save ${platformId} connection. Please try again.`);
     return { data: null, error };
   }
 };

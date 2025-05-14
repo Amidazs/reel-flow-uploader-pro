@@ -1,12 +1,13 @@
 
-// Re-export both toast implementations but with clearer names
-import { useToast, toast as shadcnToast } from "@/hooks/use-toast";
-import { toast as sonnerToast } from "sonner";
+// Re-export toast implementations from both libraries
+import { useToast, toast as shadcnToastOriginal } from "@/hooks/use-toast";
+import { toast as sonnerToastOriginal } from "sonner";
 
 // Export the shadcn toast hook
 export { useToast };
 
-// Export both toast implementations
-export const toast = sonnerToast;
-export const shadcnToast = shadcnToast;
+// Export sonner toast as the default toast implementation
+export const toast = sonnerToastOriginal;
 
+// Export shadcn toast with a different name to avoid conflicts
+export const shadcnToast = shadcnToastOriginal;
