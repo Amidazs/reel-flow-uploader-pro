@@ -74,10 +74,8 @@ const OAuthCallbackHandler = () => {
         if (accessToken && provider) {
           if (!user) {
             console.log("No authenticated user found, but received OAuth tokens");
-            toast({
-              title: "Authentication required",
-              description: "Please log in and try again.",
-              variant: "destructive"
+            toast("Authentication required", {
+              description: "Please log in and try again."
             });
             navigate("/");
             setProcessingOAuth(false);
@@ -115,15 +113,13 @@ const OAuthCallbackHandler = () => {
               
               // Show success message
               const platformName = provider === 'google' ? 'YouTube' : provider.charAt(0).toUpperCase() + provider.slice(1);
-              toast({
-                title: `${platformName} connected successfully!`,
+              toast(`${platformName} connected successfully!`, {
                 description: `You can now upload videos to ${platformName}`
               });
               
               // For Google/YouTube, show a special message
               if (provider === 'google') {
-                toast({
-                  title: "YouTube access granted!",
+                toast("YouTube access granted!", {
                   description: "You can now upload videos to YouTube."
                 });
               }
@@ -135,10 +131,8 @@ const OAuthCallbackHandler = () => {
           }
           
           if (!success) {
-            toast({
-              title: "Connection failed",
-              description: `Failed to connect ${provider} after multiple attempts. Please try again.`,
-              variant: "destructive"
+            toast("Connection failed", {
+              description: `Failed to connect ${provider} after multiple attempts. Please try again.`
             });
           }
           
@@ -152,14 +146,12 @@ const OAuthCallbackHandler = () => {
           });
           
           if (!user) {
-            toast({
-              title: "Authentication required",
+            toast("Authentication required", {
               description: "Please log in and try again."
             });
             navigate("/");
           } else {
-            toast({
-              title: "Connection failed",
+            toast("Connection failed", {
               description: "Failed to connect account. Please try again."
             });
             navigate("/settings");
@@ -167,8 +159,7 @@ const OAuthCallbackHandler = () => {
         }
       } catch (error) {
         console.error('Error processing OAuth callback:', error);
-        toast({
-          title: "Connection failed",
+        toast("Connection failed", {
           description: "Failed to connect account. Please try again."
         });
         navigate('/settings');

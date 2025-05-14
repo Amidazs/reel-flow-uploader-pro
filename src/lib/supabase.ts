@@ -1,4 +1,3 @@
-
 import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 import { supabase as integratedSupabase } from '@/integrations/supabase/client';
@@ -117,111 +116,70 @@ export const useAuth = () => {
   };
 };
 
-// Function to create or update platform connections for a user
+// Create or update platform connection
 export const createOrUpdatePlatformConnection = async (
-  userId: string,
-  platformId: string,
+  userId: string, 
+  platform: string,
   accessToken: string,
-  refreshToken?: string,
-  expiresAt?: string
+  refreshToken: string | null,
+  expiresAt: string | null
 ) => {
   try {
-    console.log(`Creating/updating platform connection:`, {
-      userId,
-      platformId,
-      accessToken: accessToken ? "present" : "missing",
-      refreshToken: refreshToken ? "present" : "missing",
-      expiresAt
-    });
-    
-    // First check if connection already exists
-    const { data: existing, error: checkError } = await supabase
+    const { data, error } = await supabase
       .from('platform_connections')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('platform_id', platformId)
-      .maybeSingle();
-      
-    if (checkError) {
-      console.error("Error checking existing connection:", checkError);
-      throw checkError;
-    }
-    
-    let result;
-    
-    if (existing) {
-      // Update existing connection
-      console.log(`Updating existing ${platformId} connection for user ${userId}`);
-      result = await supabase
-        .from('platform_connections')
-        .update({
-          access_token: accessToken,
-          refresh_token: refreshToken || null,
-          expires_at: expiresAt || null,
-          connected_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id)
-        .select();
-    } else {
-      // Create new connection
-      console.log(`Creating new ${platformId} connection for user ${userId}`);
-      result = await supabase
-        .from('platform_connections')
-        .insert({
+      .upsert([
+        {
           user_id: userId,
-          platform_id: platformId,
-          connected_at: new Date().toISOString(),
+          platform_id: platform,
           access_token: accessToken,
-          refresh_token: refreshToken || null,
-          expires_at: expiresAt || null,
-        })
-        .select();
-    }
+          refresh_token: refreshToken,
+          expires_at: expiresAt,
+          connected_at: new Date().toISOString(),
+        }
+      ], {
+        onConflict: 'user_id,platform_id',
+        ignoreDuplicates: false,
+      });
 
-    if (result.error) {
-      console.error(`Error creating/updating ${platformId} connection:`, result.error);
-      throw result.error;
+    if (error) {
+      console.error('Error creating platform connection:', error);
+      toast("Connection failed", {
+        description: "Could not save connection data. Please try again."
+      });
+      return { data: null, error };
     }
     
-    console.log(`Successfully created/updated ${platformId} connection:`, result.data);
-
-    // Show success toast
-    toast({
-      title: `${platformId === 'google' ? 'YouTube' : platformId} connection saved`,
-      description: "Connection successfully established"
-    });
-    
-    return { data: result.data, error: null };
+    return { data, error: null };
   } catch (error) {
-    console.error(`Error creating/updating ${platformId} connection:`, error);
-    toast({
-      title: `Failed to save ${platformId} connection`,
-      description: "Please try again."
+    console.error('Exception creating platform connection:', error);
+    toast("Connection failed", {
+      description: "An unexpected error occurred."
     });
     return { data: null, error };
   }
 };
 
-// Function to delete a platform connection
+// Delete platform connection
 export const deletePlatformConnection = async (userId: string, platformId: string) => {
   try {
-    console.log(`Deleting platform connection: ${platformId} for user ${userId}`);
-    
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('platform_connections')
       .delete()
-      .eq('user_id', userId)
-      .eq('platform_id', platformId);
-
+      .match({ user_id: userId, platform_id: platformId });
+    
     if (error) {
-      console.error(`Error deleting ${platformId} connection:`, error);
-      throw error;
+      toast("Error", {
+        description: "Failed to disconnect platform. Please try again."
+      });
+      console.error('Error deleting platform connection:', error);
     }
     
-    console.log(`Successfully deleted ${platformId} connection`);
-    return { error: null };
+    return { data, error };
   } catch (error) {
-    console.error(`Error deleting ${platformId} connection:`, error);
-    return { error };
+    console.error('Exception deleting platform connection:', error);
+    toast("Error", {
+        description: "An unexpected error occurred while disconnecting."
+    });
+    return { data: null, error };
   }
 };

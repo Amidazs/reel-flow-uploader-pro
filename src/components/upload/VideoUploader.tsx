@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/App";
 import { supabase } from "@/lib/supabase";
@@ -139,23 +138,19 @@ const VideoUploader = ({ onUploadComplete }: VideoUploaderProps) => {
       
       // Show appropriate toast message
       if (scheduledDateTime) {
-        toast({
-          title: "Upload scheduled",
+        toast("Upload scheduled", {
           description: `Your video will be published ${format(scheduledDateTime, "PPP 'at' p")}`
         });
       } else {
-        toast({
-          title: "Video processed successfully!",
+        toast("Video processed successfully!", {
           description: "Your content is ready to view"
         });
       }
       
     } catch (error) {
       console.error("Upload error:", error);
-      toast({
-        title: "Failed to upload video",
-        description: error.message,
-        variant: "destructive"
+      toast("Failed to upload video", {
+        description: error.message
       });
       setUploadStep("metadata"); // Return to metadata step on failure
     }

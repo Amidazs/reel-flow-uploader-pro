@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, AlertCircle, Lock, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -104,8 +103,7 @@ const PlatformConnections = () => {
       setIsInitialLoading(false);
     } catch (error) {
       console.error('Error fetching platform connections:', error);
-      toast({
-        title: "Failed to load connections", 
+      toast("Failed to load connections", { 
         description: "Please refresh the page to try again."
       });
       setIsInitialLoading(false);
@@ -151,10 +149,8 @@ const PlatformConnections = () => {
       setIsLoading(prev => ({ ...prev, [platformId]: true }));
       
       if (!user) {
-        toast({
-          title: "Authentication required", 
-          description: "Please log in to connect your accounts.", 
-          variant: "destructive"
+        toast("Authentication required", { 
+          description: "Please log in to connect your accounts."
         });
         return;
       }
@@ -164,14 +160,12 @@ const PlatformConnections = () => {
       // Show platform-specific messages
       const platformName = platformId === 'google' ? 'YouTube' : platformId.charAt(0).toUpperCase() + platformId.slice(1);
       
-      toast({
-        title: "Connecting to " + platformName,
+      toast("Connecting to " + platformName, {
         description: `${platformName} authorization will open in a new window. Please ensure popup blockers are disabled.`
       });
       
       if (platformId === 'google') {
-        toast({
-          title: "Development App Notice",
+        toast("Development App Notice", {
           description: "This is a development app with limited access. You'll need to click 'Continue' on the unverified app screen."
         });
       }
@@ -190,8 +184,7 @@ const PlatformConnections = () => {
       
     } catch (error) {
       console.error(`Error connecting to ${platformId}:`, error);
-      toast({
-        title: `Connection Failed`, 
+      toast(`Connection Failed`, { 
         description: `Unable to connect to ${platformId === 'google' ? 'YouTube' : platformId}. Please check your browser settings and try again.`
       });
     } finally {
@@ -204,8 +197,7 @@ const PlatformConnections = () => {
       setIsLoading(prev => ({ ...prev, [platformId]: true }));
       
       if (!user?.id) {
-        toast({
-          title: "Authentication required", 
+        toast("Authentication required", { 
           description: "Please log in to manage your connections."
         });
         return;
@@ -233,16 +225,13 @@ const PlatformConnections = () => {
       setRefreshTrigger(prev => prev + 1);
       
       const platformName = platformId === 'google' ? 'YouTube' : platformId;
-      toast({
-        title: "Disconnected",
+      toast("Disconnected", {
         description: `Your ${platformName} account has been disconnected.`
       });
     } catch (error) {
       console.error(`Error disconnecting from ${platformId}:`, error);
-      toast({
-        title: "Disconnection failed",
-        description: `Unable to disconnect from ${platformId === 'google' ? 'YouTube' : platformId}. Please try again.`,
-        variant: "destructive"
+      toast("Disconnection failed", {
+        description: `Unable to disconnect from ${platformId === 'google' ? 'YouTube' : platformId}. Please try again.`
       });
     } finally {
       setIsLoading(prev => ({ ...prev, [platformId]: false }));
@@ -253,8 +242,7 @@ const PlatformConnections = () => {
   const handleManualRefresh = () => {
     setIsInitialLoading(true);
     setRefreshTrigger(prev => prev + 1);
-    toast({
-      title: "Refreshing connections...",
+    toast("Refreshing connections...", {
       description: "Checking for connected platforms."
     });
   };

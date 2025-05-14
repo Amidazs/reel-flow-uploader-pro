@@ -106,10 +106,8 @@ export default function useVideoUpload() {
       if (dbError) {
         console.error('Error saving video metadata to database:', dbError);
         // We still continue since the file upload was successful
-        toast({
-          title: "Warning",
-          description: "Video uploaded but metadata could not be saved.",
-          variant: "destructive"
+        toast("Warning", {
+          description: "Video uploaded but metadata could not be saved."
         });
       }
 
@@ -118,8 +116,7 @@ export default function useVideoUpload() {
       const isScheduled = options?.metadata?.scheduledFor != null;
       
       if (!isScheduled) {
-        toast({
-          title: "Success",
+        toast("Success", {
           description: "Video uploaded successfully!"
         });
       }
@@ -132,10 +129,8 @@ export default function useVideoUpload() {
     } catch (err: any) {
       console.error('Error uploading video:', err);
       setError(err);
-      toast({
-        title: "Upload failed",
-        description: err.message || 'Unknown error',
-        variant: "destructive"
+      toast("Upload failed", {
+        description: err.message || 'Unknown error'
       });
       options?.onError?.(err);
       return { url: null, error: err };
