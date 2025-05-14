@@ -1,5 +1,6 @@
+
 import { useState, useEffect, useCallback } from "react";
-import { CheckCircle2, AlertCircle, Lock, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, Lock, Loader2, RefreshCcw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,7 @@ const PlatformConnections = () => {
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   // Function to fetch connections - extracted for reusability
   const fetchConnections = useCallback(async () => {
@@ -66,7 +68,8 @@ const PlatformConnections = () => {
         return;
       }
       
-      console.log("Fetching platform connections for user:", user.id);
+      console.group("🔄 Fetching Platform Connections");
+      console.log("👤 Fetching platform connections for user:", user.id);
       
       const { data, error } = await supabase
         .from('platform_connections')
@@ -74,11 +77,31 @@ const PlatformConnections = () => {
         .eq('user_id', user.id);
       
       if (error) {
-        console.error("Error fetching connections:", error);
+        console.error("❌ Error fetching connections:", error);
+        console.groupEnd();
         throw error;
       }
       
-      console.log("Fetched platform connections:", data);
+      console.log("📋 Raw platform connections data:", data);
+      
+      // Save some debug info
+      if (data && data.length > 0) {
+        setDebugInfo({
+          connectionCount: data.length,
+          platforms: data.map(conn => conn.platform_id),
+          lastConnected: data.reduce((latest, conn) => {
+            return new Date(conn.connected_at) > new Date(latest) ? conn.connected_at : latest;
+          }, "1970-01-01"),
+          anyExpired: data.some(conn => conn.expires_at && new Date(conn.expires_at) < new Date()),
+          tokenLengths: data.map(conn => ({
+            platform: conn.platform_id,
+            accessTokenLength: conn.access_token?.length,
+            hasRefreshToken: !!conn.refresh_token,
+          }))
+        });
+      } else {
+        setDebugInfo({ connectionCount: 0, message: "No connections found" });
+      }
       
       if (data && data.length > 0) {
         // Update platforms with connection status from database
@@ -90,7 +113,7 @@ const PlatformConnections = () => {
           };
         });
         setPlatforms(updatedPlatforms);
-        console.log("Updated platforms with connection status:", updatedPlatforms);
+        console.log("✅ Updated platforms with connection status:", updatedPlatforms);
       } else {
         // Reset connections if none found
         const resetPlatforms = platforms.map(platform => ({
@@ -98,11 +121,14 @@ const PlatformConnections = () => {
           connected: false
         }));
         setPlatforms(resetPlatforms);
+        console.log("ℹ️ No connections found, reset all to disconnected");
       }
 
       setIsInitialLoading(false);
+      console.groupEnd();
     } catch (error) {
-      console.error('Error fetching platform connections:', error);
+      console.error('❌ Error fetching platform connections:', error);
+      console.groupEnd();
       toast("Failed to load connections", { 
         description: "Please refresh the page to try again."
       });
@@ -120,7 +146,7 @@ const PlatformConnections = () => {
     
     // Set up event listener for when window regains focus
     const handleFocus = () => {
-      console.log("Window focused, refreshing connections...");
+      console.log("🔄 Window focused, refreshing connections...");
       if (user) {
         fetchConnections();
       }
@@ -133,7 +159,7 @@ const PlatformConnections = () => {
       if (document.visibilityState === 'visible' && 
           window.location.pathname === '/settings' && 
           user) {
-        console.log("Periodic refresh of connections");
+        console.log("🔄 Periodic refresh of connections");
         fetchConnections();
       }
     }, 10000);
@@ -155,7 +181,13 @@ const PlatformConnections = () => {
         return;
       }
 
-      console.log(`Initiating connection to ${platformId}...`);
+      console.group("🔗 Platform Connection Attempt");
+      console.log(`🔄 Initiating connection to ${platformId}...`);
+      console.log("🔐 Auth state:", { 
+        userId: user.id, 
+        userEmail: user.email,
+        isAuthenticated: !!user
+      });
       
       // Show platform-specific messages
       const platformName = platformId === 'google' ? 'YouTube' : platformId.charAt(0).toUpperCase() + platformId.slice(1);
@@ -176,14 +208,17 @@ const PlatformConnections = () => {
       const { data, error } = await signInWithOAuth(platformId as 'google' | 'facebook');
       
       if (error) {
-        console.error(`Error during OAuth flow:`, error);
+        console.error(`❌ Error during OAuth flow:`, error);
+        console.groupEnd();
         throw error;
       }
       
-      console.log(`OAuth initiated successfully`, data);
+      console.log(`✅ OAuth initiated successfully`, data);
+      console.groupEnd();
       
     } catch (error) {
-      console.error(`Error connecting to ${platformId}:`, error);
+      console.error(`❌ Error connecting to ${platformId}:`, error);
+      console.groupEnd();
       toast(`Connection Failed`, { 
         description: `Unable to connect to ${platformId === 'google' ? 'YouTube' : platformId}. Please check your browser settings and try again.`
       });
@@ -203,16 +238,18 @@ const PlatformConnections = () => {
         return;
       }
       
-      console.log(`Disconnecting platform: ${platformId}`);
+      console.group("🗑️ Platform Disconnection");
+      console.log(`🔄 Disconnecting platform: ${platformId}`);
       
       const { error } = await deletePlatformConnection(user.id, platformId);
         
       if (error) {
-        console.error("Error disconnecting platform:", error);
+        console.error("❌ Error disconnecting platform:", error);
+        console.groupEnd();
         throw error;
       }
       
-      console.log(`Platform disconnected: ${platformId}`);
+      console.log(`✅ Platform disconnected: ${platformId}`);
       
       // Update UI
       setPlatforms(prevPlatforms => 
@@ -228,8 +265,10 @@ const PlatformConnections = () => {
       toast("Disconnected", {
         description: `Your ${platformName} account has been disconnected.`
       });
+      console.groupEnd();
     } catch (error) {
-      console.error(`Error disconnecting from ${platformId}:`, error);
+      console.error(`❌ Error disconnecting from ${platformId}:`, error);
+      console.groupEnd();
       toast("Disconnection failed", {
         description: `Unable to disconnect from ${platformId === 'google' ? 'YouTube' : platformId}. Please try again.`
       });
@@ -242,9 +281,55 @@ const PlatformConnections = () => {
   const handleManualRefresh = () => {
     setIsInitialLoading(true);
     setRefreshTrigger(prev => prev + 1);
+    console.log("🔄 Manual refresh triggered");
     toast("Refreshing connections...", {
       description: "Checking for connected platforms."
     });
+    
+    // Force revalidation of React Query data
+    queryClient.invalidateQueries({ queryKey: ['platform_connections'] });
+  };
+
+  // Function to force reconnection (for testing/debugging)
+  const forceReconnect = async (platformId: string) => {
+    try {
+      if (!user?.id) return;
+      
+      console.group("🔄 Force Reconnect");
+      console.log(`Attempting to force reconnect ${platformId}`);
+      
+      // First check connection status
+      const { data: connectionData, error: connectionError } = await supabase
+        .from('platform_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('platform_id', platformId)
+        .maybeSingle();
+      
+      if (connectionError) {
+        console.error("Error checking connection:", connectionError);
+        console.groupEnd();
+        return;
+      }
+      
+      if (connectionData) {
+        console.log("Current connection data:", {
+          ...connectionData,
+          access_token: connectionData.access_token ? "REDACTED" : null,
+          refresh_token: connectionData.refresh_token ? "REDACTED" : null,
+        });
+        
+        // Try to reconnect
+        handleConnect(platformId);
+      } else {
+        console.log("No connection found to reconnect");
+        handleConnect(platformId);
+      }
+      console.groupEnd();
+    } catch (error) {
+      console.error("Error in force reconnect:", error);
+      console.groupEnd();
+    }
   };
 
   if (isInitialLoading) {
@@ -285,7 +370,7 @@ const PlatformConnections = () => {
           onClick={handleManualRefresh} 
           className="text-xs flex items-center gap-1"
         >
-          <Loader2 className={`h-3 w-3 ${isInitialLoading ? 'animate-spin' : ''}`} />
+          <RefreshCcw className={`h-3 w-3 ${isInitialLoading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -305,6 +390,16 @@ const PlatformConnections = () => {
             : "These are development connections with limited access. You may see 'unverified app' warnings."}
         </AlertDescription>
       </Alert>
+      
+      {/* Debug info section */}
+      {debugInfo && (
+        <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded text-xs font-mono">
+          <p className="font-bold mb-2">🔍 Connection Debug Info:</p>
+          <pre className="whitespace-pre-wrap overflow-auto max-h-32">
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        </div>
+      )}
       
       <div className="space-y-4">
         {platforms.map((platform) => (
@@ -336,37 +431,49 @@ const PlatformConnections = () => {
               {platform.connected ? (
                 <>
                   <CheckCircle2 size={18} className="text-green-500" />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-red-500/20 text-red-500 hover:bg-red-500/10"
-                        disabled={isLoading[platform.id]}
-                      >
-                        {isLoading[platform.id] ? (
-                          <>
-                            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                            Disconnecting...
-                          </>
-                        ) : (
-                          "Disconnect"
-                        )}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Disconnect {platform.name}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will remove access to your {platform.name} account. You'll need to reconnect to upload videos to {platform.name}.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDisconnect(platform.id)}>Disconnect</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="border-blue-500/20 text-blue-500 hover:bg-blue-500/10"
+                      onClick={() => forceReconnect(platform.id)}
+                      disabled={isLoading[platform.id]}
+                    >
+                      <RefreshCcw className="h-3 w-3 mr-1" />
+                      Reconnect
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-red-500/20 text-red-500 hover:bg-red-500/10"
+                          disabled={isLoading[platform.id]}
+                        >
+                          {isLoading[platform.id] ? (
+                            <>
+                              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                              Disconnecting...
+                            </>
+                          ) : (
+                            "Disconnect"
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Disconnect {platform.name}</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will remove access to your {platform.name} account. You'll need to reconnect to upload videos to {platform.name}.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDisconnect(platform.id)}>Disconnect</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </>
               ) : (
                 <>

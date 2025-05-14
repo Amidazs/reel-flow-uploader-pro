@@ -53,6 +53,8 @@ const OAuthCallbackHandler = () => {
     const handleOAuthCallback = async () => {
       try {
         setProcessingOAuth(true);
+        console.group("🔍 OAuth Callback Debug");
+        console.log("🔄 Starting OAuth callback processing");
         
         // Extract hash parameters (used by Supabase OAuth)
         const hashParams = new URLSearchParams(location.hash.substring(1));
@@ -61,76 +63,117 @@ const OAuthCallbackHandler = () => {
         const provider = hashParams.get('provider');
         const expiresIn = hashParams.get('expires_in');
         
-        console.log("OAuth callback detected:", {
-          accessToken: accessToken ? "present" : "missing",
-          refreshToken: refreshToken ? "present" : "missing", 
+        console.log("📋 OAuth callback parameters:", {
+          accessTokenExists: !!accessToken,
+          accessTokenLength: accessToken ? accessToken.length : 0,
+          refreshTokenExists: !!refreshToken,
+          refreshTokenLength: refreshToken ? refreshToken.length : 0,
           provider,
           expiresIn,
           hash: location.hash,
           url: window.location.href,
-          isAuthenticated: !!user
+        });
+        
+        console.log("👤 Authentication state:", {
+          isAuthenticated: !!user,
+          userId: user?.id,
+          userEmail: user?.email,
+          loading,
         });
         
         if (accessToken && provider) {
           if (!user) {
-            console.log("No authenticated user found, but received OAuth tokens");
+            console.error("❌ No authenticated user found but received OAuth tokens");
             toast("Authentication required", {
               description: "Please log in and try again."
             });
             navigate("/");
             setProcessingOAuth(false);
+            console.groupEnd();
             return;
           }
 
-          console.log(`Processing ${provider} connection for user:`, user.id);
+          console.log(`✅ Processing ${provider} connection for user ID:`, user.id);
           
           // Calculate expiry time (convert expires_in from seconds to a date)
           const expiresAt = expiresIn 
             ? new Date(Date.now() + parseInt(expiresIn) * 1000).toISOString() 
             : null;
 
+          console.log("⏱️ Token expiration:", {
+            expiresInSeconds: expiresIn,
+            calculatedExpiresAt: expiresAt,
+            currentTime: new Date().toISOString(),
+          });
+
           // Store the tokens in Supabase with retry logic
           let retryCount = 0;
           let success = false;
           
           while (retryCount < 3 && !success) {
-            const { data, error } = await createOrUpdatePlatformConnection(
-              user.id,
-              provider,
-              accessToken,
-              refreshToken || null,
-              expiresAt
-            );
+            console.log(`🔁 Creating platform connection - attempt ${retryCount + 1}`);
+            
+            try {
+              const { data, error } = await createOrUpdatePlatformConnection(
+                user.id,
+                provider,
+                accessToken,
+                refreshToken || null,
+                expiresAt
+              );
 
-            if (error) {
-              console.error(`Attempt ${retryCount + 1}: Error creating platform connection:`, error);
-              retryCount++;
-              // Wait before retrying
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            } else {
-              success = true;
-              console.log(`${provider} connection successful!`, data);
-              
-              // Show success message
-              const platformName = provider === 'google' ? 'YouTube' : provider.charAt(0).toUpperCase() + provider.slice(1);
-              toast(`${platformName} connected successfully!`, {
-                description: `You can now upload videos to ${platformName}`
-              });
-              
-              // For Google/YouTube, show a special message
-              if (provider === 'google') {
-                toast("YouTube access granted!", {
-                  description: "You can now upload videos to YouTube."
+              if (error) {
+                console.error(`❌ Attempt ${retryCount + 1}: Error creating platform connection:`, error);
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              } else {
+                success = true;
+                console.log(`✅ ${provider} connection successful!`, data);
+                
+                // Verify the connection was saved correctly
+                console.log("🔍 Verifying connection was saved...");
+                const { data: connectionCheck, error: checkError } = await supabase
+                  .from('platform_connections')
+                  .select('*')
+                  .eq('user_id', user.id)
+                  .eq('platform_id', provider)
+                  .single();
+                  
+                if (checkError) {
+                  console.error("❌ Error checking connection:", checkError);
+                } else {
+                  console.log("✅ Connection verification result:", connectionCheck);
+                }
+                
+                // Show success message
+                const platformName = provider === 'google' ? 'YouTube' : provider.charAt(0).toUpperCase() + provider.slice(1);
+                toast(`${platformName} connected successfully!`, {
+                  description: `You can now upload videos to ${platformName}`
                 });
+                
+                // For Google/YouTube, show a special message
+                if (provider === 'google') {
+                  toast("YouTube access granted!", {
+                    description: "You can now upload videos to YouTube."
+                  });
+                }
+                
+                // Invalidate queries to refresh data
+                queryClient.invalidateQueries({ queryKey: ['platform_connections'] });
+                
+                // Navigate to settings page
+                navigate('/settings');
+                break;
               }
-              
-              // Navigate to settings page and invalidate queries to refresh data
-              navigate('/settings');
-              break;
+            } catch (e) {
+              console.error(`❌ Exception in attempt ${retryCount + 1}:`, e);
+              retryCount++;
+              await new Promise(resolve => setTimeout(resolve, 1000));
             }
           }
           
           if (!success) {
+            console.error("❌ Failed to connect after multiple attempts");
             toast("Connection failed", {
               description: `Failed to connect ${provider} after multiple attempts. Please try again.`
             });
@@ -138,7 +181,7 @@ const OAuthCallbackHandler = () => {
           
         } else if (location.hash && location.hash.includes('access_token')) {
           // We have a hash with access_token but something is missing
-          console.error("OAuth callback error: Missing required parameters", { 
+          console.error("❌ OAuth callback error: Missing required parameters", { 
             accessToken: !!accessToken, 
             provider, 
             userId: user?.id,
@@ -156,9 +199,13 @@ const OAuthCallbackHandler = () => {
             });
             navigate("/settings");
           }
+        } else {
+          console.log("🤷‍♂️ No OAuth callback parameters detected");
         }
+        console.groupEnd();
       } catch (error) {
-        console.error('Error processing OAuth callback:', error);
+        console.error('❌ Error processing OAuth callback:', error);
+        console.groupEnd();
         toast("Connection failed", {
           description: "Failed to connect account. Please try again."
         });
@@ -170,10 +217,10 @@ const OAuthCallbackHandler = () => {
 
     // Only process OAuth callback if we have a hash and not loading
     if (location.hash && location.hash.includes('access_token') && !loading && !processingOAuth) {
-      console.log("OAuth callback hash detected, processing...");
+      console.log("🔑 OAuth callback hash detected, processing...");
       handleOAuthCallback();
     }
-  }, [location, navigate, user, loading, processingOAuth]); 
+  }, [location, navigate, user, loading, processingOAuth, queryClient]); 
 
   // Show a loading state while processing the callback
   if ((location.hash && location.hash.includes('access_token') && (loading || processingOAuth))) {
