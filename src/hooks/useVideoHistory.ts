@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/App';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 
 export type VideoUpload = {
   id: string;
@@ -47,7 +47,11 @@ export const useVideoHistory = () => {
     } catch (err: any) {
       console.error('Error fetching video uploads:', err);
       setError(err);
-      toast.error('Failed to load your upload history');
+      toast({
+        variant: "destructive",
+        title: "Failed to load your upload history",
+        description: err.message || "Please try again later"
+      });
     } finally {
       setLoading(false);
     }

@@ -9,6 +9,7 @@ import { useVideoHistory } from "@/hooks/useVideoHistory";
 import { VideoHistoryList } from "@/components/upload/VideoHistoryList";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 const UploadsPage = () => {
   const { user } = useAuthContext();
@@ -30,6 +31,10 @@ const UploadsPage = () => {
   const handleUploadComplete = () => {
     // Switch to history tab after upload completes
     setActiveTab("history");
+    toast({
+      title: "Upload complete",
+      description: "Your video has been successfully uploaded"
+    });
   };
 
   return (

@@ -2,7 +2,7 @@
 import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 import { supabase as integratedSupabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 
 // Use the integrated Supabase client that's already properly configured
 export const supabase = integratedSupabase;
@@ -46,19 +46,15 @@ export const useAuth = () => {
   // Sign in with OAuth provider - Updated to fix redirects and OAuth flow
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
-      // Get the current page URL for the redirect
-      const currentPath = window.location.pathname;
-      const redirectTo = `${window.location.origin}/settings`;
+      // Get the current origin for the redirect
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/settings`;
       
       console.log(`Initiating ${provider} OAuth flow with redirect URL: ${redirectTo}`);
-      console.log(`Current path: ${currentPath}`);
       
       // Configure specific scopes and options based on provider
       const options: any = {
         redirectTo,
-        queryParams: {
-          redirect_url: redirectTo, // Additional parameter to ensure proper redirection
-        },
       };
       
       // Add provider-specific configurations
@@ -66,7 +62,6 @@ export const useAuth = () => {
         // Updated Google scopes to include YouTube and basic profile
         options.scopes = 'email profile https://www.googleapis.com/auth/youtube';
         options.queryParams = { 
-          ...options.queryParams,
           access_type: 'offline',
           prompt: 'consent',
           include_granted_scopes: 'true',
@@ -82,15 +77,23 @@ export const useAuth = () => {
       
       if (error) {
         console.error(`OAuth error:`, error);
-        toast.error(`Failed to connect to ${provider}: ${error.message}`);
+        toast({
+          variant: "destructive",
+          title: `Failed to connect to ${provider}`,
+          description: error.message
+        });
         throw error;
       }
       
       console.log(`OAuth flow started:`, data);
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error signing in with ${provider}:`, error);
-      toast.error(`Failed to connect to ${provider}: ${error.message}`);
+      toast({
+        variant: "destructive",
+        title: `Failed to connect to ${provider}`,
+        description: error.message
+      });
       return { data: null, error };
     }
   };

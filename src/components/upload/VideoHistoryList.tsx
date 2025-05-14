@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Share2, ExternalLink, Trash2, Clock } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { useState } from 'react';
 
 interface VideoHistoryListProps {
@@ -29,10 +29,17 @@ export const VideoHistoryList = ({ uploads, loading, onDeleteVideo }: VideoHisto
       if (error) throw error;
       
       onDeleteVideo(id);
-      toast.success('Video deleted successfully');
-    } catch (error) {
+      toast({
+        title: "Video deleted successfully",
+        description: "The video has been removed from your history"
+      });
+    } catch (error: any) {
       console.error('Error deleting video:', error);
-      toast.error('Failed to delete video');
+      toast({
+        variant: "destructive",
+        title: "Failed to delete video",
+        description: error.message || "An error occurred while deleting the video"
+      });
     } finally {
       setDeletingId(null);
     }
