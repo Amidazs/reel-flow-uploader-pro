@@ -1,4 +1,3 @@
-
 import { VideoUpload } from '@/hooks/useVideoHistory';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -29,16 +28,14 @@ export const VideoHistoryList = ({ uploads, loading, onDeleteVideo }: VideoHisto
       if (error) throw error;
       
       onDeleteVideo(id);
-      toast({
-        title: "Video deleted successfully",
+      toast("Video deleted successfully", {
         description: "The video has been removed from your history"
       });
     } catch (error: any) {
       console.error('Error deleting video:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to delete video",
-        description: error.message || "An error occurred while deleting the video"
+      toast("Failed to delete video", {
+        description: error.message || "An error occurred while deleting the video",
+        variant: "destructive"
       });
     } finally {
       setDeletingId(null);

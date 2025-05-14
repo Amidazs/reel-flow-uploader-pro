@@ -47,10 +47,9 @@ export const useVideoHistory = () => {
     } catch (err: any) {
       console.error('Error fetching video uploads:', err);
       setError(err);
-      toast({
-        variant: "destructive",
-        title: "Failed to load your upload history",
-        description: err.message || "Please try again later"
+      toast("Failed to load your upload history", {
+        description: err.message || "Please try again later",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);

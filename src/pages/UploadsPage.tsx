@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,8 +30,7 @@ const UploadsPage = () => {
   const handleUploadComplete = () => {
     // Switch to history tab after upload completes
     setActiveTab("history");
-    toast({
-      title: "Upload complete",
+    toast("Upload complete", {
       description: "Your video has been successfully uploaded"
     });
   };
