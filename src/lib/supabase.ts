@@ -3,6 +3,7 @@ import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 import { supabase as integratedSupabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { toast as sonnerToast } from 'sonner';
 
 // Use the integrated Supabase client that's already properly configured
 export const supabase = integratedSupabase;
@@ -92,8 +93,8 @@ export const useAuth = () => {
       if (error) {
         console.error(`❌ OAuth error:`, error);
         console.groupEnd();
-        toast(`Failed to connect to ${provider}`, {
-          description: error.message
+        sonnerToast("Failed to connect", {
+          description: `Could not connect to ${provider}: ${error.message}`
         });
         throw error;
       }
@@ -104,7 +105,7 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error(`❌ Error signing in with ${provider}:`, error);
       console.groupEnd();
-      toast(`Failed to connect to ${provider}`, {
+      sonnerToast("Connection failed", {
         description: error.message
       });
       return { data: null, error };
@@ -150,19 +151,8 @@ export const createOrUpdatePlatformConnection = async (
       expiresAt,
     });
 
-    // Check if user exists first
-    console.log("🔍 Verifying user exists in auth.users table...");
-    const { data: userData, error: userError } = await supabase
-      .from('auth.users')
-      .select('id')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (userError) {
-      console.error("❌ Error verifying user:", userError);
-    } else {
-      console.log("👤 User check result:", userData);
-    }
+    // Remove the auth.users check since it's not accessible through the client
+    console.log("🔍 Proceeding with connection creation without user verification");
 
     // First, check if connection already exists (for debugging)
     console.log("🔍 Checking if platform connection already exists...");
@@ -214,7 +204,7 @@ export const createOrUpdatePlatformConnection = async (
     if (error) {
       console.error('❌ Error creating platform connection:', error);
       console.groupEnd();
-      toast("Connection failed", {
+      sonnerToast("Connection failed", {
         description: "Could not save connection data. Please try again."
       });
       return { data: null, error };
@@ -246,7 +236,7 @@ export const createOrUpdatePlatformConnection = async (
   } catch (error) {
     console.error('❌ Exception creating platform connection:', error);
     console.groupEnd();
-    toast("Connection failed", {
+    sonnerToast("Connection failed", {
       description: "An unexpected error occurred."
     });
     return { data: null, error };
@@ -281,7 +271,7 @@ export const deletePlatformConnection = async (userId: string, platformId: strin
     if (error) {
       console.error('❌ Error deleting platform connection:', error);
       console.groupEnd();
-      toast("Error", {
+      sonnerToast("Error", {
         description: "Failed to disconnect platform. Please try again."
       });
     } else {
@@ -293,7 +283,7 @@ export const deletePlatformConnection = async (userId: string, platformId: strin
   } catch (error) {
     console.error('❌ Exception deleting platform connection:', error);
     console.groupEnd();
-    toast("Error", {
+    sonnerToast("Error", {
       description: "An unexpected error occurred while disconnecting."
     });
     return { data: null, error };
