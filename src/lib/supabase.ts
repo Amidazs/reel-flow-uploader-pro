@@ -1,3 +1,4 @@
+
 import { createClient, Session } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 import { supabase as integratedSupabase } from '@/integrations/supabase/client';
@@ -76,8 +77,7 @@ export const useAuth = () => {
       
       if (error) {
         console.error(`OAuth error:`, error);
-        toast({
-          title: `Failed to connect to ${provider}`,
+        toast(`Failed to connect to ${provider}`, {
           description: error.message
         });
         throw error;
@@ -87,8 +87,7 @@ export const useAuth = () => {
       return { data, error: null };
     } catch (error: any) {
       console.error(`Error signing in with ${provider}:`, error);
-      toast({
-        title: `Failed to connect to ${provider}`,
+      toast(`Failed to connect to ${provider}`, {
         description: error.message
       });
       return { data: null, error };
@@ -178,7 +177,7 @@ export const deletePlatformConnection = async (userId: string, platformId: strin
   } catch (error) {
     console.error('Exception deleting platform connection:', error);
     toast("Error", {
-        description: "An unexpected error occurred while disconnecting."
+      description: "An unexpected error occurred while disconnecting."
     });
     return { data: null, error };
   }
